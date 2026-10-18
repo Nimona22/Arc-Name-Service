@@ -1,5 +1,11 @@
-const clientKey = 'TEST_CLIENT_KEY:b043e8d3264fe4bbeff25ac4638f894c:f971dfacc68d119a207411a0b8885c33';
-const clientUrl = 'https://modular-sdk.circle.com/v1/rpc/w3s/buidl/arcTestnet';
+import fs from 'node:fs';
+const envFile = fs.existsSync('.env') ? fs.readFileSync('.env', 'utf8') : '';
+const keyMatch = envFile.match(/^VITE_CLIENT_KEY\s*=\s*['"]?([^'"\r\n]+)/m) || envFile.match(/^TEST_CLIENT_KEY\s*=\s*['"]?([^'"\r\n]+)/m);
+const rawKey = keyMatch ? keyMatch[1].trim() : '';
+const clientKey = rawKey.startsWith('TEST_CLIENT_KEY:') ? rawKey : `TEST_CLIENT_KEY:${rawKey}`;
+const urlMatch = envFile.match(/^VITE_CLIENT_URL\s*=\s*['"]?([^'"\r\n]+)/m);
+const baseUrl = urlMatch ? urlMatch[1].trim() : 'https://modular-sdk.circle.com/v1/rpc/w3s/buidl';
+const clientUrl = `${baseUrl}/arcTestnet`;
 
 async function testRawPaymaster() {
   const dummyAccount = '0x1234567890123456789012345678901234567890';
