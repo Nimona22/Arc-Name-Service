@@ -1,0 +1,72 @@
+- generic [ref=f1e2]:
+  - generic [ref=f1e3]:
+    - banner [ref=f1e4]:
+      - generic [ref=f1e5]:
+        - generic "Return to ANS Overview" [ref=f1e6] [cursor=pointer]:
+          - img "ANS" [ref=f1e8]
+        - navigation [ref=f1e9]:
+          - button "Home" [ref=f1e10] [cursor=pointer]
+          - button "Names" [ref=f1e12] [cursor=pointer]
+          - button "Marketplace" [active] [ref=f1e13] [cursor=pointer]
+          - button "My Names" [ref=f1e14] [cursor=pointer]
+          - button "Send" [ref=f1e15] [cursor=pointer]
+      - generic [ref=f1e16]:
+        - generic [ref=f1e17]: Arc Network
+        - generic [ref=f1e22]:
+          - button "Create Wallet" [ref=f1e23] [cursor=pointer]
+          - button "Sign in" [ref=f1e24] [cursor=pointer]
+    - main [ref=f1e25]:
+      - generic [ref=f1e228]:
+        - generic [ref=f1e229]:
+          - generic [ref=f1e230]:
+            - heading "Marketplace" [level=1] [ref=f1e231]
+            - paragraph [ref=f1e232]: Discover, verify, and acquire registered .arc identities via atomic escrow.
+          - generic [ref=f1e233]:
+            - button "All Names" [ref=f1e234] [cursor=pointer]
+            - button "3 Letters" [ref=f1e235] [cursor=pointer]
+            - button "4 Letters" [ref=f1e236] [cursor=pointer]
+            - button "5+ Letters" [ref=f1e237] [cursor=pointer]
+            - button "Sold Out" [ref=f1e238] [cursor=pointer]
+        - generic [ref=f1e239]:
+          - generic [ref=f1e240]:
+            - generic [ref=f1e241]:
+              - heading "ferar.arc" [level=3] [ref=f1e242] [cursor=pointer]
+              - button "Trusted" [ref=f1e244]
+            - generic [ref=f1e247]:
+              - generic [ref=f1e248]:
+                - paragraph [ref=f1e249]: Asking price
+                - paragraph [ref=f1e250]: 8 USDC
+              - generic [ref=f1e251]:
+                - paragraph [ref=f1e252]: Seller
+                - button "Maler" [ref=f1e253] [cursor=pointer]
+            - button "Buy Name" [ref=f1e256] [cursor=pointer]
+          - generic [ref=f1e257]:
+            - generic [ref=f1e258]:
+              - heading "user1.arc" [level=3] [ref=f1e259] [cursor=pointer]
+              - button "Trusted" [ref=f1e261]
+            - generic [ref=f1e264]:
+              - generic [ref=f1e265]:
+                - paragraph [ref=f1e266]: Asking price
+                - paragraph [ref=f1e267]: 6.5 USDC
+              - generic [ref=f1e268]:
+                - paragraph [ref=f1e269]: Seller
+                - button "Maler" [ref=f1e270] [cursor=pointer]
+            - button "Buy Name" [ref=f1e273] [cursor=pointer]
+    - contentinfo [ref=f1e210]:
+      - generic [ref=f1e211]:
+        - generic [ref=f1e212]:
+          - generic [ref=f1e213] [cursor=pointer]:
+            - generic [ref=f1e214]: <>
+            - generic [ref=f1e215]: ANS
+          - generic [ref=f1e216]: Third-party .arc domain service on Arc Network. Not affiliated with Arc Network or Circle.
+        - generic [ref=f1e217]:
+          - button "About Us" [ref=f1e218] [cursor=pointer]
+          - link "Docs" [ref=f1e219] [cursor=pointer]:
+            - /url: https://docs.arc.io/
+          - link "Support" [ref=f1e220] [cursor=pointer]:
+            - /url: https://github.com/Nimona22/ANS
+          - link "X (Twitter)" [ref=f1e221] [cursor=pointer]:
+            - /url: https://x.com/Nimox219
+          - link "GitHub" [ref=f1e224] [cursor=pointer]:
+            - /url: https://github.com/Nimona22/ANS
+  - region "Notifications alt+T"

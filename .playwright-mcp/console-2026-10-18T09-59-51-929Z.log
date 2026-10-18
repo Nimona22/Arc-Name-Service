@@ -1,0 +1,7 @@
+[     619ms] [LOG] [studio-trace] patching fetch @ http://localhost:5173/src/tracing.ts:9
+[     620ms] [LOG] [studio-trace] initialized @ http://localhost:5173/src/tracing.ts:9
+[     667ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://localhost:5173/src/console-capture.ts:133
+[    1132ms] [LOG] [studio-trace] chain learned: rpc.testnet.arc.io → 5042002 @ http://localhost:5173/src/console-capture.ts:133
+[  503729ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_CLOSED @ https://zytmsjuprufxfgvpxfyt.supabase.co/rest/v1/analytics_events?columns=%22event_type%22%2C%22session_id%22%2C%22wallet_address%22%2C%22metadata%22:0
+[  503730ms] [WARNING] Failed to track analytics event: TypeError: Failed to fetch @ http://localhost:5173/src/console-capture.ts:133
+[  503730ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_CLOSED @ https://zytmsjuprufxfgvpxfyt.supabase.co/rest/v1/user_profiles?select=wallet_address%2Cdisplay_name%2Cbio%2Cavatar_url%2Cbanner_url%2Ctwitter%2Cwebsite&wallet_address=eq.0x815289d5c67e533d008fd38c51b1159cfa9bda0c:0

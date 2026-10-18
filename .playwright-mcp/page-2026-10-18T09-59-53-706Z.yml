@@ -1,0 +1,133 @@
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - banner [ref=e4]:
+      - generic [ref=e5]:
+        - generic "Return to ANS Overview" [ref=e6] [cursor=pointer]:
+          - img "ANS" [ref=e8]
+        - navigation [ref=e9]:
+          - button "Home" [ref=e10] [cursor=pointer]
+          - button "Names" [ref=e12] [cursor=pointer]
+          - button "Marketplace" [ref=e13] [cursor=pointer]
+          - button "My Names" [ref=e14] [cursor=pointer]
+          - button "Send" [ref=e15] [cursor=pointer]
+      - generic [ref=e16]:
+        - generic [ref=e17]: Arc Network
+        - generic [ref=e22]:
+          - button "Create Wallet" [ref=e23] [cursor=pointer]
+          - button "Sign in" [ref=e24] [cursor=pointer]
+    - main [ref=e25]:
+      - generic [ref=e26]:
+        - generic [ref=e28]:
+          - generic [ref=e29]:
+            - generic [ref=e30]: Arc Name Service
+            - heading "The sovereign naming layer for Arc Network." [level=1] [ref=e33]
+            - paragraph [ref=e34]: Turn long blockchain addresses into human-readable .arc names.Send, receive, and manage your identity on Arc.
+            - generic [ref=e35]:
+              - generic [ref=e37]:
+                - textbox "Search for a .arc name" [ref=e41]:
+                  - /placeholder: Search for a name (e.g. alice.arc)
+                - button "Search" [ref=e42] [cursor=pointer]
+              - generic [ref=e43]:
+                - generic [ref=e44]: "Popular:"
+                - button "nimox.arc" [ref=e45] [cursor=pointer]
+                - button "feran.arc" [ref=e46] [cursor=pointer]
+                - button "user1.arc" [ref=e47] [cursor=pointer]
+                - button "maler.arc" [ref=e48] [cursor=pointer]
+                - button "ferar.arc" [ref=e49] [cursor=pointer]
+          - generic [ref=e51]:
+            - generic:
+              - generic:
+                - paragraph: SIMPLE NAMES.
+                - paragraph: REAL OWNERS.
+                - paragraph: ON-CHAIN.
+        - generic [ref=e79]:
+          - generic [ref=e85]:
+            - heading "Human-readable identity" [level=3] [ref=e86]
+            - paragraph [ref=e87]: Use .arc names instead of long wallet addresses.
+          - generic [ref=e93]:
+            - heading "Name-based payments" [level=3] [ref=e94]
+            - paragraph [ref=e95]: Send USDC to a name or wallet with confidence.
+          - generic [ref=e103]:
+            - heading "Name marketplace" [level=3] [ref=e104]
+            - paragraph [ref=e105]: Discover, buy, and sell names on Arc.
+          - generic [ref=e110]:
+            - heading "Profiles & reputation" [level=3] [ref=e111]
+            - paragraph [ref=e112]: Build your on-chain identity and establish trust.
+          - generic [ref=e124]:
+            - heading "Passkey security" [level=3] [ref=e125]
+            - paragraph [ref=e126]: Secure access with Circle SDK and passkeys.
+        - generic [ref=e128]:
+          - generic [ref=e129]:
+            - generic [ref=e130]:
+              - generic [ref=e131]: Live on Arc Network
+              - heading "Your name. Your identity, On-chain." [level=2] [ref=e134]: Your name.Your identity,On-chain.
+              - paragraph [ref=e135]: Sovereign naming and payment routing on Arc Network. Register, manage, and use your .arc name across supported applications.
+            - button "Search Names" [ref=e136] [cursor=pointer]
+          - generic [ref=e140]:
+            - generic [ref=e142]:
+              - generic [ref=e143]:
+                - heading "Featured Names" [level=3] [ref=e144]
+                - button "View marketplace" [ref=e145] [cursor=pointer]
+              - generic [ref=e149]:
+                - generic [ref=e150] [cursor=pointer]:
+                  - generic [ref=e151]:
+                    - generic [ref=e152]: arc.arc
+                    - generic [ref=e153]: 3 Characters
+                  - generic [ref=e154]: 15.00 USDC
+                - generic [ref=e158] [cursor=pointer]:
+                  - generic [ref=e159]:
+                    - generic [ref=e160]: pay.arc
+                    - generic [ref=e161]: 3 Characters
+                  - generic [ref=e162]: 15.00 USDC
+                - generic [ref=e166] [cursor=pointer]:
+                  - generic [ref=e167]:
+                    - generic [ref=e168]: dex.arc
+                    - generic [ref=e169]: 3 Characters
+                  - generic [ref=e170]: 15.00 USDC
+                - generic [ref=e174] [cursor=pointer]:
+                  - generic [ref=e175]:
+                    - generic [ref=e176]: dao.arc
+                    - generic [ref=e177]: 3 Characters
+                  - generic [ref=e178]: 15.00 USDC
+                - generic [ref=e182] [cursor=pointer]:
+                  - generic [ref=e183]:
+                    - generic [ref=e184]: gold.arc
+                    - generic [ref=e185]: 4 Characters
+                  - generic [ref=e186]: 9.00 USDC
+            - generic [ref=e191]:
+              - generic [ref=e192]: Quick Start
+              - heading "Get your .arc name in three simple steps." [level=2] [ref=e193]
+              - generic [ref=e194]:
+                - generic [ref=e195]:
+                  - generic [ref=e196]: "1"
+                  - generic [ref=e197]:
+                    - heading "Search & check availability" [level=4] [ref=e198]
+                    - paragraph [ref=e199]: Find your preferred name in real-time.
+                - generic [ref=e200]:
+                  - generic [ref=e201]: "2"
+                  - generic [ref=e202]:
+                    - heading "Register your lease" [level=4] [ref=e203]
+                    - paragraph [ref=e204]: Authorize 3 to 12 months with your Passkey or wallet.
+                - generic [ref=e205]:
+                  - generic [ref=e206]: "3"
+                  - generic [ref=e207]:
+                    - heading "Route payments & identity" [level=4] [ref=e208]
+                    - paragraph [ref=e209]: Receive USDC, set primary reverse lookup, and build reputation.
+    - contentinfo [ref=e210]:
+      - generic [ref=e211]:
+        - generic [ref=e212]:
+          - generic [ref=e213] [cursor=pointer]:
+            - generic [ref=e214]: <>
+            - generic [ref=e215]: ANS
+          - generic [ref=e216]: Third-party .arc domain service on Arc Network. Not affiliated with Arc Network or Circle.
+        - generic [ref=e217]:
+          - button "About Us" [ref=e218] [cursor=pointer]
+          - link "Docs" [ref=e219] [cursor=pointer]:
+            - /url: https://docs.arc.io/
+          - link "Support" [ref=e220] [cursor=pointer]:
+            - /url: https://github.com/Nimona22/ANS
+          - link "X (Twitter)" [ref=e221] [cursor=pointer]:
+            - /url: https://x.com/Nimox219
+          - link "GitHub" [ref=e224] [cursor=pointer]:
+            - /url: https://github.com/Nimona22/ANS
+  - region "Notifications alt+T"

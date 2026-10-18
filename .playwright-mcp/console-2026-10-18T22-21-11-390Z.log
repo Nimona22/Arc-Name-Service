@@ -1,0 +1,4 @@
+[     688ms] [LOG] [studio-trace] patching fetch @ http://localhost:5173/src/tracing.ts:9
+[     688ms] [LOG] [studio-trace] initialized @ http://localhost:5173/src/tracing.ts:9
+[     738ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://localhost:5173/src/console-capture.ts:133
+[    1147ms] [LOG] [studio-trace] chain learned: rpc.testnet.arc.io → 5042002 @ http://localhost:5173/src/console-capture.ts:133

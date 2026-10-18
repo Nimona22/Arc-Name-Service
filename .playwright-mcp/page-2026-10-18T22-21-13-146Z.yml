@@ -1,0 +1,327 @@
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - banner [ref=e4]:
+      - generic "Arc Name Service" [ref=e5] [cursor=pointer]:
+        - img "ANS" [ref=e7]
+      - button "Launch App" [ref=e9] [cursor=pointer]
+    - main [ref=e13]:
+      - generic [ref=e14]:
+        - generic [ref=e16]:
+          - generic [ref=e17]:
+            - generic [ref=e18]: Arc Name Service Protocol
+            - heading "The sovereign naming layer for Arc Network." [level=1] [ref=e20]
+            - paragraph [ref=e21]: Turn long blockchain addresses into human-readable .arc names.Send, receive, and manage your identity on Arc.
+            - generic [ref=e22]:
+              - generic [ref=e24]:
+                - textbox "Search for a .arc name" [ref=e28]:
+                  - /placeholder: Search for a name (e.g. alice.arc)
+                - button "Search" [ref=e29] [cursor=pointer]
+              - generic [ref=e30]:
+                - generic [ref=e31]: "Popular:"
+                - button "nimox.arc" [ref=e32] [cursor=pointer]
+                - button "feran.arc" [ref=e33] [cursor=pointer]
+                - button "user1.arc" [ref=e34] [cursor=pointer]
+                - button "maler.arc" [ref=e35] [cursor=pointer]
+                - button "ferar.arc" [ref=e36] [cursor=pointer]
+          - generic [ref=e38]:
+            - generic:
+              - generic:
+                - paragraph: SIMPLE NAMES.
+                - paragraph: REAL OWNERS.
+                - paragraph: ON-CHAIN.
+        - generic [ref=e66]:
+          - generic [ref=e72]:
+            - heading "Human-readable identity" [level=3] [ref=e73]
+            - paragraph [ref=e74]: Use .arc names instead of long wallet addresses.
+          - generic [ref=e80]:
+            - heading "Name-based payments" [level=3] [ref=e81]
+            - paragraph [ref=e82]: Send USDC to a name or wallet with confidence.
+          - generic [ref=e90]:
+            - heading "Name marketplace" [level=3] [ref=e91]
+            - paragraph [ref=e92]: Discover, buy, and sell names on Arc.
+          - generic [ref=e97]:
+            - heading "Profiles & reputation" [level=3] [ref=e98]
+            - paragraph [ref=e99]: Build your on-chain identity and establish trust.
+          - generic [ref=e111]:
+            - heading "Passkey security" [level=3] [ref=e112]
+            - paragraph [ref=e113]: Secure access with Circle SDK and passkeys.
+        - generic [ref=e114]:
+          - generic [ref=e115]:
+            - heading "Replacing cryptic hex hashes with human-readable .arc names." [level=2] [ref=e116]
+            - paragraph [ref=e117]: "Every account on Arc Network is cryptographically identified by a 42-character hexadecimal address. While essential for elliptic curve signatures, raw addresses create severe friction: they cannot be memorized, are difficult to verify visually, and introduce dangerous risks of clipboard hijacking. ANS connects readable .arc names with on-chain addresses through decentralized smart contracts."
+          - generic [ref=e118]:
+            - generic [ref=e119]:
+              - generic [ref=e120]:
+                - generic [ref=e121]:
+                  - generic [ref=e122]: Standard Arc Hex Address
+                  - generic [ref=e123]: High friction
+                - generic [ref=e124]: "0x315EED96725dFbdDeFcdF35673634CD1eCEB9433"
+                - list [ref=e125]:
+                  - listitem [ref=e126]:
+                    - generic [ref=e130]: Impossible to remember, pronounce, or communicate verbally
+                  - listitem [ref=e131]:
+                    - generic [ref=e135]: Vulnerable to clipboard poisoning and look-alike address attacks
+                  - listitem [ref=e136]:
+                    - generic [ref=e140]: Zero identity context, verified profile data, or reputation rating
+                  - listitem [ref=e141]:
+                    - generic [ref=e145]: Requires manual copy-pasting and stressful multi-check verification
+              - generic [ref=e146]: Native 20-byte account hash
+            - generic [ref=e147]:
+              - generic [ref=e148]:
+                - generic [ref=e149]:
+                  - generic [ref=e150]: ANS Sovereign Identity
+                  - generic [ref=e151]: Verified .arc
+                - generic [ref=e153]:
+                  - generic [ref=e154]: alex.arc
+                  - generic [ref=e155]: → 0x315E...9433
+                - list [ref=e156]:
+                  - listitem [ref=e157]:
+                    - generic [ref=e160]: Intuitive, memorable name recognized across Arc applications
+                  - listitem [ref=e161]:
+                    - generic [ref=e164]: Two-way reverse resolution binds your wallet to your primary persona
+                  - listitem [ref=e165]:
+                    - generic [ref=e168]: Integrated on-chain reputation history backed by ANSReputation.sol
+                  - listitem [ref=e169]:
+                    - generic [ref=e172]: Direct USDC payments, custom tipping memos, and name gifting
+              - generic [ref=e173]:
+                - generic [ref=e174]: Arc Testnet Protocol Standard
+                - generic [ref=e175]: Chain ID 5042002
+        - generic [ref=e176]:
+          - generic [ref=e177]:
+            - heading "Built for everyday on-chain utility, not just profile labels." [level=2] [ref=e178]
+            - paragraph [ref=e179]: An .arc name is a programmable on-chain asset that unlocks active capabilities throughout Arc Network. It functions as your payment routing address, your public persona, and your verified reputation passport.
+          - generic [ref=e180]:
+            - generic [ref=e181]:
+              - generic [ref=e182]:
+                - heading "Name-Based Payments" [level=3] [ref=e187]
+                - paragraph [ref=e188]: Send and receive native 6-decimal USDC using readable names instead of raw hashes. Attach on-chain message notes directly in transaction events.
+              - generic [ref=e189]: Native USDC 6-decimal precision
+            - generic [ref=e190]:
+              - generic [ref=e191]:
+                - heading "Two-Way Reverse Lookup" [level=3] [ref=e198]
+                - paragraph [ref=e199]: Designate your primary name. When your wallet connects to supported Arc dApps, the application displays your human identity instead of truncating your address.
+              - generic [ref=e200]: reverseLookup(address) binding
+            - generic [ref=e201]:
+              - generic [ref=e202]:
+                - heading "Anti-Hoarding Quota" [level=3] [ref=e206]
+                - paragraph [ref=e207]: To prevent speculative squatters from locking up the namespace, the ArcNameService contract enforces a strict cap of 3 active names per wallet.
+              - generic [ref=e208]: maxNamesPerWallet = 3
+            - generic [ref=e209]:
+              - generic [ref=e210]:
+                - heading "Verified Profiles" [level=3] [ref=e215]
+                - paragraph [ref=e216]: Attach an avatar, bio, website URL, and social presence. Profile edits require an EIP-191 personal signature and single-use challenge to prevent tampering.
+              - generic [ref=e217]: EIP-191 signature authorized
+        - generic [ref=e218]:
+          - generic [ref=e219]:
+            - heading "Four transparent steps from search to ecosystem resolution." [level=2] [ref=e220]
+            - paragraph [ref=e221]: The ANS protocol combines low-latency client checks with decentralized, non-custodial smart contracts deployed on Arc Testnet.
+          - generic [ref=e222]:
+            - generic [ref=e223]:
+              - generic [ref=e224]: "1"
+              - heading "Search & Availability" [level=3] [ref=e225]
+              - paragraph [ref=e226]: Query any string (minimum 3 characters). The contract checks availability in real-time and evaluates duration lease pricing based on character tier (3, 4, 5, or 6+ characters).
+            - generic [ref=e227]:
+              - generic [ref=e228]: "2"
+              - heading "Lease Registration" [level=3] [ref=e229]
+              - paragraph [ref=e230]: Choose a 3, 6, 9, or 12-month lease with fixed USDC pricing. Sign via Passkey or Web3 wallet. ArcNameService.sol mints the record and records your wallet as owner.
+            - generic [ref=e231]:
+              - generic [ref=e232]: "3"
+              - heading "Dual Resolution Binding" [level=3] [ref=e233]
+              - paragraph [ref=e234]: The registry writes forward resolution (name → address) for payment routing and sets your chosen primary reverse lookup (address → name) for connected dApps.
+            - generic [ref=e235]:
+              - generic [ref=e236]: "4"
+              - heading "Ecosystem Usage" [level=3] [ref=e237]
+              - paragraph [ref=e238]: Your name is live across Arc. Receive USDC payments, accept tips with memos, gift names to teammates, or list your name on the trustless atomic escrow marketplace.
+        - generic [ref=e239]:
+          - generic [ref=e240]:
+            - heading "One identity for financial routing, social context, and standing." [level=2] [ref=e241]
+            - paragraph [ref=e242]: Experience how an .arc identity connects multiple everyday workflows inside the ANS application.
+          - generic [ref=e243]:
+            - generic [ref=e244]:
+              - generic [ref=e245]:
+                - generic [ref=e246]: Instant Resolution
+                - heading "Name-to-Name Payments" [level=3] [ref=e247]
+                - paragraph [ref=e248]: Enter any .arc name in the Send interface. The application resolves the target address on-chain before executing the transfer, eliminating clipboard errors entirely.
+              - generic [ref=e249]:
+                - generic [ref=e250]:
+                  - generic [ref=e251]: Token
+                  - generic [ref=e252]: USDC (6 dec)
+                - generic [ref=e253]:
+                  - generic [ref=e254]: Resolution
+                  - generic [ref=e255]: On-Chain Direct
+            - generic [ref=e256]:
+              - generic [ref=e257]:
+                - generic [ref=e258]: Event Log Memo
+                - heading "Tipping with On-Chain Notes" [level=3] [ref=e259]
+                - paragraph [ref=e260]: Support creators, developers, or peers. Protocol tips allow you to attach an immutable memo note that is emitted in contract events and boosts counterparty reputation.
+              - generic [ref=e261]:
+                - generic [ref=e262]:
+                  - generic [ref=e263]: Memo Storage
+                  - generic [ref=e264]: TipSent Event
+                - generic [ref=e265]:
+                  - generic [ref=e266]: Reputation
+                  - generic [ref=e267]: +1 Tip Counter
+            - generic [ref=e268]:
+              - generic [ref=e269]:
+                - generic [ref=e270]: Atomic Minting
+                - heading "Direct Identity Gifting" [level=3] [ref=e271]
+                - paragraph [ref=e272]: Onboard friends or teammates to Arc. The Gift flow enables you to fund and register an available .arc name delivered straight to the recipient's wallet in one atomic call.
+              - generic [ref=e273]:
+                - generic [ref=e274]:
+                  - generic [ref=e275]: Recipient Gas
+                  - generic [ref=e276]: 0.00 (Funded)
+                - generic [ref=e277]:
+                  - generic [ref=e278]: Ownership
+                  - generic [ref=e279]: Immediate Transfer
+        - generic [ref=e280]:
+          - generic [ref=e281]:
+            - heading "True digital ownership with active lifecycle governance." [level=2] [ref=e282]
+            - paragraph [ref=e283]: Registered names are sovereign on-chain assets governed by explicit smart contract functions on ArcNameService.sol.
+          - generic [ref=e284]:
+            - generic [ref=e285]:
+              - heading "Fixed Duration Leases" [level=3] [ref=e286]
+              - paragraph [ref=e287]: Names are leased for 3, 6, 9, or 12 months. Periodic renewal prevents lost or inactive wallets from permanently locking names out of public circulation.
+            - generic [ref=e288]:
+              - heading "Proactive Renewals" [level=3] [ref=e289]
+              - paragraph [ref=e290]: Renew your active names at any time from the 'My Names' management panel. Extensions add directly onto your existing lease without interrupting reverse resolution.
+            - generic [ref=e291]:
+              - heading "Direct Wallet Transfers" [level=3] [ref=e292]
+              - paragraph [ref=e293]: Transfer ownership of any registered name to another Arc wallet address in a single smart contract transaction. No intermediaries or platform approvals required.
+            - generic [ref=e294]:
+              - heading "Primary Identity Toggle" [level=3] [ref=e295]
+              - paragraph [ref=e296]: Own up to 3 names and select which one represents your address in reverse lookups. Switch your primary identity anytime in the management dashboard.
+        - generic [ref=e297]:
+          - generic [ref=e298]:
+            - heading "Peer-to-peer secondary trading with zero custodial risk." [level=2] [ref=e299]
+            - paragraph [ref=e300]: Buy and sell premium .arc names through smart contract escrow with instantaneous atomic settlement.
+          - generic [ref=e301]:
+            - generic [ref=e302]:
+              - generic [ref=e303]: Escrow Contract
+              - heading "Non-Custodial Escrow" [level=3] [ref=e304]
+              - paragraph [ref=e305]: When listing a name, the domain is held in escrow by ArcNameService.sol. The seller sets a fixed USDC price. The name cannot be moved or altered while listed.
+            - generic [ref=e306]:
+              - generic [ref=e307]: Atomic Execution
+              - heading "Single-Block Settlement" [level=3] [ref=e308]
+              - paragraph [ref=e309]: When a buyer purchases a listed name, USDC transfers to the seller and domain ownership transfers to the buyer in the exact same atomic transaction.
+            - generic [ref=e310]:
+              - generic [ref=e311]: Fee Policy
+              - heading "2.5% Protocol Fee" [level=3] [ref=e312]
+              - paragraph [ref=e313]: Sellers receive 97.5% of the purchase price directly in USDC. The 250 bps (2.5%) protocol fee supports registry maintenance. No hidden charges or listing fees.
+            - generic [ref=e314]:
+              - generic [ref=e315]: Seller Control
+              - heading "Instant Delisting" [level=3] [ref=e316]
+              - paragraph [ref=e317]: Sellers maintain full custody autonomy. Cancel an active listing at any time with a single click to return the name to your active portfolio immediately.
+          - generic [ref=e318]: ANS operates with full transparency on Arc Testnet. The marketplace presents real active listings without synthetic trading volume, fake floor prices, or inflated user statistics.
+        - generic [ref=e322]:
+          - generic [ref=e323]:
+            - heading "Objective credibility derived from verifiable on-chain history." [level=2] [ref=e324]
+            - paragraph [ref=e325]: Backed by the dedicated ANSReputation.sol smart contract on Arc Testnet, reputation scores track objective transaction metrics rather than subjective moderation or centralized KYC.
+          - generic [ref=e326]:
+            - generic [ref=e327]:
+              - generic [ref=e328]:
+                - generic [ref=e329]: New
+                - generic [ref=e330]: Tier 0
+              - generic [ref=e331]: 0 – 2 Transactions
+              - paragraph [ref=e332]: Baseline tier assigned to newly created or inactive addresses beginning their on-chain journey.
+            - generic [ref=e333]:
+              - generic [ref=e334]:
+                - generic [ref=e335]: Trusted
+                - generic [ref=e336]: Tier 1
+              - generic [ref=e337]: 3 – 9 Transactions
+              - paragraph [ref=e338]: Demonstrated history of completed name registrations, tips, gifts, or secondary sales.
+            - generic [ref=e339]:
+              - generic [ref=e340]:
+                - generic [ref=e341]: Verified
+                - generic [ref=e342]: Tier 2
+              - generic [ref=e343]: 10 – 24 Transactions
+              - paragraph [ref=e344]: Established on-chain reputation with consistent protocol usage and zero unresolved disputes.
+            - generic [ref=e345]:
+              - generic [ref=e346]:
+                - generic [ref=e347]: Elite
+                - generic [ref=e348]: Tier 3
+              - generic [ref=e349]: 25+ Transactions
+              - paragraph [ref=e350]: Veteran ecosystem participant with extensive completed transactions and continuous tenure.
+          - generic [ref=e351]:
+            - heading "Metrics Tracked by ANSReputation.sol" [level=3] [ref=e352]
+            - generic [ref=e353]:
+              - generic [ref=e354]:
+                - generic [ref=e355]: salesCompleted
+                - text: Marketplace Sales
+              - generic [ref=e356]:
+                - generic [ref=e357]: purchasesCompleted
+                - text: Acquisitions
+              - generic [ref=e358]:
+                - generic [ref=e359]: tipsGiftsGiven
+                - text: Tips & Gifts Sent
+              - generic [ref=e360]:
+                - generic [ref=e361]: memberSince
+                - text: Initial Block Time
+              - generic [ref=e362]:
+                - generic [ref=e363]: disputeFlags
+                - text: Dispute Flags (0)
+        - generic [ref=e364]:
+          - generic [ref=e365]:
+            - 'heading "Engineered for modern Web3: Seedless, biometric, and secure." [level=2] [ref=e366]'
+            - paragraph [ref=e367]: ANS is built natively on Arc Network with account abstraction, biometric passkeys, and cryptographic authorization standards.
+          - generic [ref=e368]:
+            - generic [ref=e369]:
+              - generic [ref=e370]:
+                - heading "Circle Passkey Smart Accounts (ERC-4337)" [level=3] [ref=e381]
+                - paragraph [ref=e382]: Create a modular smart account in seconds using FaceID, TouchID, or Windows Hello. Passkeys eliminate seed phrases, paper backups, and browser extension requirements for newcomers while retaining non-custodial cryptographic security.
+              - generic [ref=e383]: WebAuthn Biometric Standard
+            - generic [ref=e384]:
+              - generic [ref=e385]:
+                - heading "Universal Web3 Compatibility" [level=3] [ref=e390]
+                - paragraph [ref=e391]: Prefer your existing Ethereum tooling? ANS natively supports MetaMask and all standard EIP-1193 injected browser providers on Arc Testnet (Chain ID 5042002), providing immediate compatibility for Web3 users.
+              - generic [ref=e392]: EIP-1193 & Wagmi v2 Compatible
+            - generic [ref=e393]:
+              - generic [ref=e394]:
+                - heading "Cryptographically Authorized Profiles" [level=3] [ref=e398]
+                - paragraph [ref=e399]: Off-chain profile metadata (bio, avatar, website, social handles) is secured with EIP-191 personal signatures and single-use server challenges, ensuring that only the verified private key holder can update their public identity card.
+              - generic [ref=e400]: Single-use challenge replay protection
+            - generic [ref=e401]:
+              - generic [ref=e402]:
+                - heading "Native USDC Settlement" [level=3] [ref=e406]
+                - paragraph [ref=e407]: All protocol fees, name registrations, renewals, tips, and marketplace purchases settle natively in 6-decimal USDC (0x3600...0000), protecting domain pricing from cryptocurrency price volatility.
+              - generic [ref=e408]: Stable predictable pricing
+        - generic [ref=e410]:
+          - generic [ref=e411]:
+            - heading "Claim your sovereign .arc identity today." [level=2] [ref=e412]
+            - paragraph [ref=e413]: Launch the ANS application to search for your name, authenticate with your biometric passkey, and secure your primary identity on Arc Network.
+          - generic [ref=e414]:
+            - generic [ref=e415]:
+              - generic [ref=e416]: "1"
+              - heading "Find your name" [level=4] [ref=e417]
+              - paragraph [ref=e418]: Search availability and view character-tier pricing.
+            - generic [ref=e419]:
+              - generic [ref=e420]: "2"
+              - heading "Launch the app" [level=4] [ref=e421]
+              - paragraph [ref=e422]: Open the application to connect your wallet or passkey.
+            - generic [ref=e423]:
+              - generic [ref=e424]: "3"
+              - heading "Sign & Register" [level=4] [ref=e425]
+              - paragraph [ref=e426]: Choose 3 to 12 months duration and confirm in USDC.
+            - generic [ref=e427]:
+              - generic [ref=e428]: "4"
+              - heading "Set as Primary" [level=4] [ref=e429]
+              - paragraph [ref=e430]: Bind your reverse lookup for universal Arc recognition.
+          - generic [ref=e431]:
+            - button "Launch App" [ref=e432] [cursor=pointer]
+            - button "Search Available Names" [ref=e436] [cursor=pointer]
+        - generic [ref=e438]:
+          - generic [ref=e439]:
+            - generic [ref=e440]:
+              - img "ANS" [ref=e443] [cursor=pointer]
+              - paragraph [ref=e444]: Arc Name Service (ANS). Sovereign decentralized naming and identity layer for Arc Network.
+            - generic [ref=e445]:
+              - link "GitHub Repo" [ref=e446] [cursor=pointer]:
+                - /url: https://github.com/Nimona22/ANS
+              - generic [ref=e451]: •
+              - link "X Account" [ref=e452] [cursor=pointer]:
+                - /url: https://x.com/Nimox219
+              - generic [ref=e457]: •
+              - button "Back to Top ↑" [ref=e458] [cursor=pointer]
+          - generic [ref=e459]:
+            - paragraph [ref=e460]: © 2026 Arc Name Service. Independent protocol deployed on Arc Testnet.
+            - paragraph [ref=e461]: Not affiliated with or endorsed by Arc Network or Circle.
+  - region "Notifications alt+T"

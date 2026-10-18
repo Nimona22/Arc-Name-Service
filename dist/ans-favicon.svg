@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="142 212 280 214" width="100%" height="100%">
+  <style>
+    .ans-ribbon-left { fill: #151615; }
+    .ans-ribbon-right { fill: #108945; }
+    .ans-node { fill: #108945; }
+    @media (prefers-color-scheme: dark) {
+      .ans-ribbon-left { fill: #FFFFFF; }
+    }
+  </style>
+  <g id="ans-symbol">
+    <!-- Left Ribbon & Inner Ascender (Charcoal in Light mode, White in Dark mode) -->
+    <path class="ans-ribbon-left" d="M 297.5 220.2 C 276.0 214.0 250.5 219.5 236.0 241.5 L 154.5 366.5 C 139.0 390.5 154.0 421.0 183.0 421.0 L 228.0 421.0 L 261.0 364.0 L 261.0 303.0 L 211.0 385.0 L 186.0 385.0 L 272.5 251.5 C 275.0 247.5 278.0 246.0 281.0 246.0 Z" />
+    <!-- Right Ribbon & Lower Geometric Path (Arc Emerald Green) -->
+    <path class="ans-ribbon-right" d="M 297.5 220.2 C 309.5 224.0 320.5 231.5 328.0 243.5 L 409.5 366.5 C 425.0 390.5 410.0 421.0 381.0 421.0 L 335.0 421.0 L 312.0 385.0 L 280.0 385.0 C 277.5 385.0 276.0 383.5 276.0 381.0 L 276.0 359.0 C 276.0 356.5 277.5 355.0 280.0 355.0 L 331.0 355.0 C 333.5 355.0 335.5 356.5 337.0 359.0 L 353.0 385.0 L 378.0 385.0 L 289.5 251.5 C 287.0 247.5 284.0 246.0 281.0 246.0 Z" />
+    <!-- Inner Emerald Square Block / Upper Node -->
+    <path class="ans-node" d="M 261.0 303.0 L 300.0 303.0 C 303.0 303.0 305.0 305.0 305.0 308.0 L 305.0 337.0 C 305.0 340.0 303.0 342.0 300.0 342.0 L 261.0 342.0 Z" />
+  </g>
+</svg>

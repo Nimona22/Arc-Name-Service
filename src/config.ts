@@ -3,7 +3,7 @@
  * Built with Arc Studio — https://studio.arc.io
  */
 
-import { http, createConfig } from 'wagmi'
+import { http, createConfig, fallback } from 'wagmi'
 import { mainnet } from 'wagmi/chains'
 import { arcTestnet } from 'viem/chains'
 import { injected } from 'wagmi/connectors'
@@ -16,13 +16,16 @@ import {
 import { registerChain } from './tracing'
 
 // Pre-register chain RPC URLs so trace events show correct chain names immediately
-registerChain(arcTestnet.id, arcTestnet.rpcUrls.default.http[0])
+registerChain(arcTestnet.id, 'https://rpc.testnet.arc.io')
 
 export const config = createConfig({
   chains: [arcTestnet, mainnet], // mainnet needed for ENS resolution
   connectors: [injected()],
   transports: {
-    [arcTestnet.id]: http(),
+    [arcTestnet.id]: fallback([
+      http('https://rpc.testnet.arc.io'),
+      http('https://rpc.testnet.arc.network'),
+    ]),
     [mainnet.id]: http(), // ENS resolution uses mainnet
   },
 })

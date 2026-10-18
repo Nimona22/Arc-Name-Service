@@ -24,7 +24,7 @@
         "sonner": "^1.7.1",
         "tailwind-merge": "^2.6.0",
         "viem": "^2.56.3",
-        "wagmi": "^2.19.5",
+        "wagmi": "^2.19.5"
       },
       "devDependencies": {
         "@types/node": "^24.0.0",
@@ -38,12 +38,12 @@
         "tailwindcss": "^3.4.17",
         "typescript": "~7.0.2",
         "vite": "^6.0.5",
-        "vite-plugin-node-polyfills": "^0.22.0",
-      },
-    },
+        "vite-plugin-node-polyfills": "^0.22.0"
+      }
+    }
   },
   "overrides": {
-    "viem": "^2.56.3",
+    "viem": "^2.56.3"
   },
   "packages": {
     "@aave/account": ["@aave/account@0.2.1", "", { "peerDependencies": { "react": "17.x || 18.x || 19.x", "react-dom": "17.x || 18.x || 19.x", "viem": "2.x", "wagmi": "2.x" }, "optionalPeers": ["react", "react-dom", "viem", "wagmi"] }, "sha512-na1slTE+dY6I5G9jX/Zi4ryvuPjy7xfUtsnHYIGYOnGEJtT0I53DU7C2w16isA6Civf+/XPJ+m6RdtOaf+Qoig=="],
@@ -2104,6 +2104,6 @@
 
     "@metamask/eth-json-rpc-provider/@metamask/json-rpc-engine/@metamask/rpc-errors/@metamask/utils/uuid": ["uuid@9.0.1", "", { "bin": { "uuid": "dist/bin/uuid" } }, "sha512-b+1eJOlsR9K8HJpow9Ok3fiWOWSIcIzXodvv0rQjVoOVNpWMpxf1wZNpt4y9h10odCNrqnYp1OBzRktckBe3sA=="],
 
-    "yargs/find-up/locate-path/p-locate/p-limit": ["p-limit@2.3.0", "", { "dependencies": { "p-try": "^2.0.0" } }, "sha512-//88mFWSJx8lxCzwdAABTJL2MyWB12+eIY7MDL2SqLmAkeKU9qxRvWuSyTjm3FUmpBEMuFfckAIqEaVGUDxb6w=="],
+    "yargs/find-up/locate-path/p-locate/p-limit": ["p-limit@2.3.0", "", { "dependencies": { "p-try": "^2.0.0" } }, "sha512-//88mFWSJx8lxCzwdAABTJL2MyWB12+eIY7MDL2SqLmAkeKU9qxRvWuSyTjm3FUmpBEMuFfckAIqEaVGUDxb6w=="]
   }
 }

@@ -1,0 +1,48 @@
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - banner [ref=e4]:
+      - generic [ref=e5]:
+        - generic "Return to ANS Overview" [ref=e6] [cursor=pointer]:
+          - img "ANS" [ref=e8]
+        - navigation [ref=e9]:
+          - button "Home" [ref=e10] [cursor=pointer]
+          - button "Names" [ref=e12] [cursor=pointer]
+          - button "Marketplace" [active] [ref=e13] [cursor=pointer]
+          - button "My Names" [ref=e14] [cursor=pointer]
+          - button "Send" [ref=e15] [cursor=pointer]
+      - generic [ref=e16]:
+        - generic [ref=e17]: Arc Network
+        - generic [ref=e22]:
+          - button "Create Wallet" [ref=e23] [cursor=pointer]
+          - button "Sign in" [ref=e24] [cursor=pointer]
+    - main [ref=e25]:
+      - generic [ref=e228]:
+        - generic [ref=e229]:
+          - generic [ref=e230]:
+            - heading "Marketplace" [level=1] [ref=e231]
+            - paragraph [ref=e232]: Discover, verify, and acquire registered .arc identities via atomic escrow.
+          - generic [ref=e233]:
+            - button "All Names" [ref=e234] [cursor=pointer]
+            - button "3 Letters" [ref=e235] [cursor=pointer]
+            - button "4 Letters" [ref=e236] [cursor=pointer]
+            - button "5+ Letters" [ref=e237] [cursor=pointer]
+            - button "Sold Out" [ref=e238] [cursor=pointer]
+        - paragraph [ref=e245]: Querying on-chain escrow listings on Arc Testnet...
+    - contentinfo [ref=e210]:
+      - generic [ref=e211]:
+        - generic [ref=e212]:
+          - generic [ref=e213] [cursor=pointer]:
+            - generic [ref=e214]: <>
+            - generic [ref=e215]: ANS
+          - generic [ref=e216]: Third-party .arc domain service on Arc Network. Not affiliated with Arc Network or Circle.
+        - generic [ref=e217]:
+          - button "About Us" [ref=e218] [cursor=pointer]
+          - link "Docs" [ref=e219] [cursor=pointer]:
+            - /url: https://docs.arc.io/
+          - link "Support" [ref=e220] [cursor=pointer]:
+            - /url: https://github.com/Nimona22/ANS
+          - link "X (Twitter)" [ref=e221] [cursor=pointer]:
+            - /url: https://x.com/Nimox219
+          - link "GitHub" [ref=e224] [cursor=pointer]:
+            - /url: https://github.com/Nimona22/ANS
+  - region "Notifications alt+T"

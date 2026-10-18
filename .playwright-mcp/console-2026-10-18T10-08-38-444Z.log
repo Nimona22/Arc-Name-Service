@@ -1,0 +1,7 @@
+[     163ms] [LOG] [studio-trace] patching fetch @ http://localhost:5173/src/tracing.ts:9
+[     163ms] [LOG] [studio-trace] initialized @ http://localhost:5173/src/tracing.ts:9
+[     207ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://localhost:5173/src/console-capture.ts:133
+[     391ms] [LOG] [studio-trace] chain learned: rpc.testnet.arc.io → 5042002 @ http://localhost:5173/src/console-capture.ts:133
+[  495425ms] [ERROR] Failed to load resource: the server responded with a status of 429 () @ https://explorer.testnet.arc.io/api/v2/addresses/0xa70e51df2472677219de4afa5124a47526e27033/logs:0
+[  495697ms] [ERROR] Failed to load resource: the server responded with a status of 429 () @ https://explorer.testnet.arc.io/api/v2/addresses/0xa70e51df2472677219de4afa5124a47526e27033/logs:0
+[  495874ms] [ERROR] Failed to load resource: the server responded with a status of 429 () @ https://explorer.testnet.arc.io/api/v2/addresses/0xa70e51df2472677219de4afa5124a47526e27033/logs:0
