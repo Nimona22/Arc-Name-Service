@@ -1,5 +1,6 @@
 import { decodeAbiParameters } from 'viem';
 import { ANS_ADDRESS } from './abis';
+import { getSoldListings } from './marketplace';
 
 export interface NameActivityItem {
   id: string;

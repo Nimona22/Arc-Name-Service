@@ -6,7 +6,7 @@ import {
   ArrowRightLeft, Tag, X, Shield, History, ArrowUpRight, Info, 
   Activity, Zap, CreditCard, CheckCircle2, RefreshCw, Clock, ArrowRight as ArrowRightIcon, Gift,
   Copy, LogOut, Mail, Edit3, Star, Fingerprint, Home as HomeIcon,
-  Camera, Share, Bell, BellDot, ShoppingCart, ExternalLink
+  Camera, Share, Bell, BellDot, ShoppingCart, ExternalLink, Globe, Plus, Trash2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useReadContract } from 'wagmi';
@@ -52,6 +52,16 @@ import {
   subscribeToProfile,
 } from './lib/profile';
 import { useNotifications, addClientNotification, type ANSNotification, type SignChallengeCallback } from './lib/notifications';
+import { ShareQRModal } from './components/ShareQRModal';
+import {
+  getSubdomainsForParent,
+  saveSubdomain,
+  deleteSubdomain,
+  parseAndResolveSubdomain,
+  type SubdomainRecord,
+} from './lib/subdomains';
+import { normalizeAnsName, validateAnsName, validateSubdomainLabel } from './lib/ensNorm';
+import { getCachedReverseName, resolveAddressToName, useReverseResolve } from './lib/reverseResolver';
 export type { UserProfile };
 export { loadProfile, saveProfile, saveProfileGlobal, fetchProfileGlobal, compressImage, useUserProfile };
 
@@ -3945,10 +3955,13 @@ const SendView = ({
     }
   }, [defaultRecipient]);
 
-  const cleanRecip = cleanName(recipient);
-  const isArcName = recipient.trim().toLowerCase().endsWith('.arc');
+  const trimmedRecip = recipient.trim();
+  const isEthAddress = trimmedRecip.startsWith('0x') && trimmedRecip.length === 42;
+  const subdomainMatch = useMemo(() => parseAndResolveSubdomain(trimmedRecip), [trimmedRecip]);
+  const cleanRecip = cleanName(trimmedRecip);
+  const isArcName = !subdomainMatch && trimmedRecip.toLowerCase().endsWith('.arc');
 
-  const { data: onchainResolved } = useReadContract({
+  const { data: onchainResolved, isLoading: isResolvingOnchain } = useReadContract({
     address: ANS_ADDRESS,
     abi: ANS_ABI,
     functionName: 'resolve',
@@ -3957,31 +3970,73 @@ const SendView = ({
     query: { enabled: isArcName && cleanRecip.length >= 3 },
   });
 
+  const { targetAddress, resolutionType, resolutionLabel } = useMemo(() => {
+    if (!trimmedRecip) {
+      return { targetAddress: null, resolutionType: 'none', resolutionLabel: '' };
+    }
+    if (isEthAddress) {
+      const primary = getCachedReverseName(trimmedRecip);
+      return {
+        targetAddress: trimmedRecip,
+        resolutionType: 'address',
+        resolutionLabel: primary ? `Arc Address (${primary})` : 'Arc Address',
+      };
+    }
+    if (subdomainMatch) {
+      return {
+        targetAddress: subdomainMatch.targetAddress,
+        resolutionType: 'subdomain',
+        resolutionLabel: `Subdomain: ${subdomainMatch.fullName}`,
+      };
+    }
+    if (isArcName) {
+      const resolved = onchainResolved as string | undefined;
+      if (resolved && resolved.startsWith('0x') && resolved !== '0x0000000000000000000000000000000000000000') {
+        return {
+          targetAddress: resolved,
+          resolutionType: 'ans',
+          resolutionLabel: `Verified .arc Identity (${cleanRecip}.arc)`,
+        };
+      }
+      return {
+        targetAddress: null,
+        resolutionType: 'unknown',
+        resolutionLabel: isResolvingOnchain ? 'Resolving on-chain...' : 'Unregistered .arc name',
+      };
+    }
+    return { targetAddress: null, resolutionType: 'none', resolutionLabel: '' };
+  }, [trimmedRecip, isEthAddress, subdomainMatch, isArcName, onchainResolved, cleanRecip, isResolvingOnchain]);
+
   if (!isConnected) {
     return <PasskeySignInCard auth={auth} actionText="Sign in or create a wallet to send USDC payments using .arc names" />;
   }
 
-  const isResolved = isArcName && (!!onchainResolved || recipient.length > 4);
-  const resolvedAddress = (onchainResolved as string | undefined) || (isResolved ? "0x3f5...8b91" : null);
+  const isResolved = !!targetAddress;
+  const resolvedAddress = targetAddress;
 
   const handleReview = () => {
     if (!recipient || !amount) return;
+    if (isArcName && !targetAddress && !isResolvingOnchain) {
+      toast.error('The entered .arc name is not registered on Arc Testnet.');
+      return;
+    }
     setStep('preview');
   };
 
   const handleConfirm = async () => {
     try {
       setTxStatus('approving');
-      const hash = await ans.sendTip(recipient, amount, note, (step) => {
+      const sendTarget = subdomainMatch ? subdomainMatch.targetAddress : (targetAddress || recipient);
+      const hash = await ans.sendTip(sendTarget, amount, note, (step) => {
         if (step === 'approving') setTxStatus('approving');
         else if (step === 'tipping') setTxStatus('confirming');
       });
       recordActivity({
-        name: recipient,
+        name: subdomainMatch ? subdomainMatch.fullName : recipient,
         action: 'Sent Tip',
         amount: `${amount} USDC`,
         from: auth.address || 'Anonymous',
-        to: recipient,
+        to: targetAddress || recipient,
         timestamp: Date.now(),
         txHash: hash,
         note: note || undefined,
@@ -4074,6 +4129,18 @@ const SendView = ({
                   </div>
                 )}
               </div>
+              {resolutionType === 'unknown' && trimmedRecip.length >= 3 && (
+                <div className="mt-2 text-xs font-sans text-amber-700 bg-amber-50 border border-amber-200/80 rounded-xl p-2.5 flex items-center gap-2">
+                  <AlertCircle size={14} className="text-amber-600 shrink-0" />
+                  <span>This .arc name is not registered on Arc Testnet. Please verify the spelling.</span>
+                </div>
+              )}
+              {resolutionType === 'subdomain' && targetAddress && (
+                <div className="mt-2 text-xs font-mono text-[#137A43] bg-[#E8F5E9] border border-[#137A43]/20 rounded-xl p-2.5 flex items-center justify-between">
+                  <span>Routing to Subdomain Target:</span>
+                  <span className="font-bold">{targetAddress.slice(0, 6)}...{targetAddress.slice(-4)}</span>
+                </div>
+              )}
               {resolvedAddress && resolvedAddress.startsWith('0x') && resolvedAddress.length === 42 && (
                 <TipRecipientProfileBadge resolvedAddress={resolvedAddress} />
               )}
@@ -4195,10 +4262,12 @@ const SendView = ({
 
 const NameProfileView = ({ 
   name, 
-  navigateTo 
+  navigateTo,
+  auth,
 }: { 
   name: string; 
   navigateTo: (view: string, data?: string | null) => void;
+  auth?: AuthState;
 }) => {
   const clean = cleanName(name);
 
@@ -4289,6 +4358,36 @@ const NameProfileView = ({
     chainId: arcTestnet.id,
     query: { enabled: isOwnerAddress },
   });
+
+  const isOwner = !!(auth?.address && isAddressMatch(ownerStr, auth.address));
+  const [activeProfileTab, setActiveProfileTab] = useState<'activity' | 'subdomains'>('activity');
+  const [subdomains, setSubdomains] = useState<SubdomainRecord[]>(() => getSubdomainsForParent(clean));
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [newSublabel, setNewSublabel] = useState('');
+  const [newSubTarget, setNewSubTarget] = useState(auth?.address || '');
+  const [newSubNote, setNewSubNote] = useState('');
+  const [isCreatingSub, setIsCreatingSub] = useState(false);
+
+  useEffect(() => {
+    setSubdomains(getSubdomainsForParent(clean));
+    const handleSubs = () => setSubdomains(getSubdomainsForParent(clean));
+    window.addEventListener('ans_subdomains_changed', handleSubs);
+    return () => window.removeEventListener('ans_subdomains_changed', handleSubs);
+  }, [clean]);
+
+  const handleCreateSubdomain = (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const created = saveSubdomain(clean, newSublabel, newSubTarget || ownerStr, newSubNote);
+      toast.success(`Subdomain ${created.fullName} published!`);
+      setNewSublabel('');
+      setNewSubNote('');
+      setIsCreatingSub(false);
+      setSubdomains(getSubdomainsForParent(clean));
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to create subdomain');
+    }
+  };
 
   const [activities, setActivities] = useState<NameActivityItem[]>([]);
 
@@ -4388,6 +4487,9 @@ const NameProfileView = ({
             <Button variant="accent" onClick={() => navigateTo('send', name)} className="w-full md:w-auto py-3 px-6 text-xs font-sans font-medium">
               <Send size={13} className="mr-1.5 inline" /> Send Payment
             </Button>
+            <Button variant="secondary" onClick={() => setIsShareModalOpen(true)} className="w-full md:w-auto py-2.5 px-6 text-xs font-sans font-medium bg-white border-[#E5E5E2] text-gray-900 hover:bg-[#FBFBFA]">
+              <Share size={13} className="mr-1.5 inline" /> Share & QR
+            </Button>
             {listingPrice !== null && (
               <Button variant="primary" onClick={() => navigateTo('marketplace')} className="w-full md:w-auto py-3 px-6 text-xs font-mono font-semibold">
                 Acquire via Escrow: {listingPrice} USDC
@@ -4396,10 +4498,44 @@ const NameProfileView = ({
           </div>
         </div>
 
-        <div className="p-8 md:p-12 bg-[#FBFBFA]">
-          <h3 className="text-xl font-serif font-bold text-gray-900 mb-8 flex items-center gap-3">
-            <History size={18} className="text-[#137A43]" /> Activity Ledger
-          </h3>
+        {/* Navigation Tabs between Activity Ledger and Subdomains */}
+        <div className="flex items-center gap-6 border-b border-[#E5E5E2] px-8 md:px-12 pt-4 bg-white">
+          <button
+            onClick={() => setActiveProfileTab('activity')}
+            className={`pb-3 text-sm font-sans font-medium flex items-center gap-2 border-b-2 transition-colors ${
+              activeProfileTab === 'activity'
+                ? 'border-[#137A43] text-gray-900 font-semibold'
+                : 'border-transparent text-gray-500 hover:text-gray-900'
+            }`}
+          >
+            <History size={15} />
+            <span>Activity Ledger</span>
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
+              {activities.length}
+            </span>
+          </button>
+
+          <button
+            onClick={() => setActiveProfileTab('subdomains')}
+            className={`pb-3 text-sm font-sans font-medium flex items-center gap-2 border-b-2 transition-colors ${
+              activeProfileTab === 'subdomains'
+                ? 'border-[#137A43] text-gray-900 font-semibold'
+                : 'border-transparent text-gray-500 hover:text-gray-900'
+            }`}
+          >
+            <Globe size={15} />
+            <span>Subdomains</span>
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#E8F5E9] text-[#137A43] font-bold">
+              {subdomains.length}
+            </span>
+          </button>
+        </div>
+
+        {activeProfileTab === 'activity' && (
+          <div className="p-8 md:p-12 bg-[#FBFBFA]">
+            <h3 className="text-xl font-serif font-bold text-gray-900 mb-8 flex items-center gap-3">
+              <History size={18} className="text-[#137A43]" /> Activity Ledger
+            </h3>
           
           {activities.length > 0 ? (
             <div className="space-y-2">
@@ -4565,7 +4701,193 @@ const NameProfileView = ({
             </div>
           )}
         </div>
+        )}
+
+        {activeProfileTab === 'subdomains' && (
+          <div className="p-8 md:p-12 bg-[#FBFBFA] space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-xl font-serif font-bold text-gray-900 flex items-center gap-2">
+                  <Globe size={18} className="text-[#137A43]" /> Subdomain Registry
+                </h3>
+                <p className="text-gray-500 font-sans text-xs mt-1">
+                  Route custom subdomains under <span className="font-mono font-semibold text-gray-800">{name}</span> to separate Arc addresses or payment vaults.
+                </p>
+              </div>
+              {isOwner && (
+                <Button
+                  variant="primary"
+                  onClick={() => setIsCreatingSub(!isCreatingSub)}
+                  className="text-xs font-sans font-semibold px-4 py-2 flex items-center gap-1.5 self-start sm:self-auto"
+                >
+                  <Plus size={14} />
+                  <span>{isCreatingSub ? 'Close Form' : 'Create Subdomain'}</span>
+                </Button>
+              )}
+            </div>
+
+            {/* Creation Form for Owner */}
+            {isOwner && isCreatingSub && (
+              <form onSubmit={handleCreateSubdomain} className="bg-white border border-[#E5E5E2] rounded-2xl p-6 shadow-sm space-y-4">
+                <h4 className="font-serif font-bold text-sm text-gray-900">Issue New Subdomain</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[11px] font-mono uppercase text-gray-500 font-semibold mb-1">
+                      Subdomain Prefix
+                    </label>
+                    <div className="flex rounded-xl border border-[#E5E5E2] overflow-hidden bg-[#FBFBFA] focus-within:border-[#137A43]">
+                      <input
+                        type="text"
+                        value={newSublabel}
+                        onChange={(e) => setNewSublabel(e.target.value.toLowerCase().trim())}
+                        placeholder="e.g. pay or vault"
+                        className="w-full bg-transparent px-3 py-2 text-sm font-mono text-gray-900 focus:outline-none"
+                      />
+                      <span className="px-3 py-2 text-gray-500 text-xs font-mono bg-[#F5F5F3] border-l border-[#E5E5E2] flex items-center shrink-0">
+                        .{clean}.arc
+                      </span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-[11px] font-mono uppercase text-gray-500 font-semibold">
+                        Target Arc Address
+                      </label>
+                      {auth?.address && (
+                        <button
+                          type="button"
+                          onClick={() => setNewSubTarget(auth.address || '')}
+                          className="text-[10px] text-[#137A43] hover:underline font-semibold"
+                        >
+                          Use My Address
+                        </button>
+                      )}
+                    </div>
+                    <input
+                      type="text"
+                      value={newSubTarget}
+                      onChange={(e) => setNewSubTarget(e.target.value.trim())}
+                      placeholder="0x..."
+                      className="w-full bg-[#FBFBFA] border border-[#E5E5E2] text-gray-900 font-mono text-xs p-2.5 rounded-xl focus:outline-none focus:border-[#137A43]"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-mono uppercase text-gray-500 font-semibold mb-1">
+                    Label / Description (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={newSubNote}
+                    onChange={(e) => setNewSubNote(e.target.value)}
+                    placeholder="e.g. Treasury endpoint or Personal tip jar"
+                    className="w-full bg-[#FBFBFA] border border-[#E5E5E2] text-gray-900 font-sans text-xs p-2.5 rounded-xl focus:outline-none focus:border-[#137A43]"
+                    maxLength={100}
+                  />
+                </div>
+
+                <div className="flex items-center justify-end gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsCreatingSub(false)}
+                    className="px-4 py-2 text-xs font-sans font-medium text-gray-500 hover:text-gray-900"
+                  >
+                    Cancel
+                  </button>
+                  <Button variant="accent" type="submit" className="text-xs font-sans font-semibold px-5 py-2">
+                    Publish Subdomain
+                  </Button>
+                </div>
+              </form>
+            )}
+
+            {/* List of Subdomains */}
+            {subdomains.length === 0 ? (
+              <div className="bg-white border border-[#E5E5E2] rounded-2xl p-8 text-center">
+                <Globe size={28} className="text-gray-300 mx-auto mb-2" />
+                <p className="font-serif font-bold text-gray-800 text-base">No Subdomains Configured</p>
+                <p className="font-sans text-xs text-gray-500 mt-1 max-w-md mx-auto">
+                  {isOwner
+                    ? `You can create subdomains like pay.${clean}.arc or vault.${clean}.arc pointing directly to any Arc address.`
+                    : 'The owner has not published any subdomains under this name yet.'}
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {subdomains.map((sub) => (
+                  <div
+                    key={sub.fullName}
+                    className="bg-white border border-[#E5E5E2] rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-2xs hover:border-[#137A43]/30 transition-colors"
+                  >
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-serif font-bold text-base text-gray-900">{sub.fullName}</span>
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#E8F5E9] text-[#137A43] font-semibold">
+                          Active
+                        </span>
+                      </div>
+                      <p className="font-mono text-xs text-gray-500 mt-1 flex items-center gap-1.5">
+                        <span className="text-gray-400 font-sans text-[11px]">Points to:</span>
+                        <span className="font-semibold text-gray-700">{sub.targetAddress.slice(0, 8)}...{sub.targetAddress.slice(-6)}</span>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(sub.targetAddress);
+                            toast.success('Target address copied!');
+                          }}
+                          className="p-1 hover:text-[#137A43] text-gray-400 transition-colors"
+                          title="Copy target address"
+                        >
+                          <Copy size={12} />
+                        </button>
+                      </p>
+                      {sub.note && (
+                        <p className="font-sans text-xs text-gray-500 italic mt-0.5">"{sub.note}"</p>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Button
+                        variant="secondary"
+                        onClick={() => navigateTo('send', sub.fullName)}
+                        className="text-xs font-sans font-medium px-3.5 py-1.5 flex items-center gap-1"
+                      >
+                        <Send size={12} />
+                        <span>Pay</span>
+                      </Button>
+                      {isOwner && (
+                        <button
+                          onClick={() => {
+                            if (window.confirm(`Delete subdomain ${sub.fullName}?`)) {
+                              deleteSubdomain(clean, sub.sublabel);
+                              setSubdomains(getSubdomainsForParent(clean));
+                              toast.success(`Subdomain ${sub.fullName} deleted.`);
+                            }
+                          }}
+                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors border border-transparent hover:border-red-100"
+                          title="Delete subdomain"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </Card>
+
+      <ShareQRModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        title="Arc Domain Identity"
+        name={name}
+        address={ownerStr}
+        reputationTier={repRecord ? 'Verified' : undefined}
+      />
     </div>
   );
 };
@@ -4583,6 +4905,7 @@ const UserProfileView = ({
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<UserProfile>(profile);
   const [copied, setCopied] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'portfolio' | 'activity'>('overview');
   const [isAvatarSaving, setIsAvatarSaving] = useState(false);
   const [isBannerSaving, setIsBannerSaving] = useState(false);
@@ -4945,7 +5268,7 @@ const UserProfileView = ({
                 <Edit3 size={16} className="mr-2" /> Edit Profile
               </Button>
             )}
-            <Button variant="secondary" onClick={handleCopy} className="text-sm bg-white border-[#E5E5E2] text-gray-900 hover:bg-gray-100">
+            <Button variant="secondary" onClick={() => setIsShareModalOpen(true)} className="text-sm bg-white border-[#E5E5E2] text-gray-900 hover:bg-gray-100">
                <Share size={16} className="mr-2" /> Share
             </Button>
           </div>
@@ -5279,27 +5602,80 @@ const UserProfileView = ({
         )}
 
       </div>
+      <ShareQRModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        title="Arc User Identity"
+        name={ownedNames[0] || null}
+        address={targetAddress}
+        reputationTier={repStats.tier}
+      />
     </div>
   );
 };
 
-const getInitialRoute = (): 'landing' | 'app' => {
-  if (typeof window === 'undefined') return 'landing';
+const parseUrlRoute = (): {
+  route: 'landing' | 'app';
+  view: string;
+  profileTarget: string | null;
+  userProfileTarget: string | null;
+  sendRecipientTarget: string;
+  namesSearchTarget: string | null;
+} => {
+  if (typeof window === 'undefined') {
+    return { route: 'landing', view: 'home', profileTarget: null, userProfileTarget: null, sendRecipientTarget: '', namesSearchTarget: null };
+  }
   const path = window.location.pathname.replace(/\/+$/, '') || '/';
-  return path === '/app' || path.startsWith('/app/') ? 'app' : 'landing';
+  const params = new URLSearchParams(window.location.search);
+  const nameParam = params.get('name') || params.get('domain');
+  const addressParam = params.get('address') || params.get('user') || params.get('wallet');
+  const viewParam = params.get('view');
+  const toParam = params.get('to');
+  const qParam = params.get('q');
+
+  const isApp = path === '/app' || path.startsWith('/app/') || !!nameParam || !!addressParam || !!viewParam || !!toParam;
+
+  if (!isApp) {
+    return { route: 'landing', view: 'home', profileTarget: null, userProfileTarget: null, sendRecipientTarget: '', namesSearchTarget: null };
+  }
+
+  if (nameParam) {
+    const full = nameParam.endsWith('.arc') ? nameParam : `${nameParam}.arc`;
+    return { route: 'app', view: 'profile', profileTarget: full, userProfileTarget: null, sendRecipientTarget: '', namesSearchTarget: null };
+  }
+  if (addressParam) {
+    return { route: 'app', view: 'userprofile', profileTarget: null, userProfileTarget: addressParam, sendRecipientTarget: '', namesSearchTarget: null };
+  }
+  if (toParam) {
+    return { route: 'app', view: 'send', profileTarget: null, userProfileTarget: null, sendRecipientTarget: toParam, namesSearchTarget: null };
+  }
+  if (viewParam) {
+    return { route: 'app', view: viewParam, profileTarget: null, userProfileTarget: null, sendRecipientTarget: '', namesSearchTarget: qParam || null };
+  }
+
+  return { route: 'app', view: 'home', profileTarget: null, userProfileTarget: null, sendRecipientTarget: '', namesSearchTarget: null };
 };
 
 export default function App() {
-  const [route, setRoute] = useState<'landing' | 'app'>(getInitialRoute);
-  const [currentView, setCurrentView] = useState('home');
-  const [profileTarget, setProfileTarget] = useState<string | null>(null);
-  const [userProfileTarget, setUserProfileTarget] = useState<string | null>(null);
+  const initial = useMemo(() => parseUrlRoute(), []);
+  const [route, setRoute] = useState<'landing' | 'app'>(initial.route);
+  const [currentView, setCurrentView] = useState(initial.view);
+  const [profileTarget, setProfileTarget] = useState<string | null>(initial.profileTarget);
+  const [userProfileTarget, setUserProfileTarget] = useState<string | null>(initial.userProfileTarget);
+  const [sendRecipientTarget, setSendRecipientTarget] = useState<string>(initial.sendRecipientTarget);
+  const [namesSearchTarget, setNamesSearchTarget] = useState<string | null>(initial.namesSearchTarget);
   const [copiedAddress, setCopiedAddress] = useState(false);
   const [isMobileWalletOpen, setIsMobileWalletOpen] = useState(false);
 
   useEffect(() => {
     const handlePopState = () => {
-      setRoute(getInitialRoute());
+      const parsed = parseUrlRoute();
+      setRoute(parsed.route);
+      setCurrentView(parsed.view);
+      setProfileTarget(parsed.profileTarget);
+      setUserProfileTarget(parsed.userProfileTarget);
+      setSendRecipientTarget(parsed.sendRecipientTarget);
+      setNamesSearchTarget(parsed.namesSearchTarget);
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
@@ -5444,33 +5820,74 @@ export default function App() {
     return () => window.removeEventListener('ans_primary_changed', onPrimaryChanged);
   }, [auth.address, onchainPrimary]);
 
-  const [sendRecipientTarget, setSendRecipientTarget] = useState<string>('');
-  const [namesSearchTarget, setNamesSearchTarget] = useState<string | null>(null);
+  const navigateTo = (view: string, data: string | null = null, replaceHistory = false) => {
+    let targetView = view;
+    let prof: string | null = null;
+    let userProf: string | null = null;
+    let sendTarget = '';
+    let nameSearch: string | null = null;
 
-  const navigateTo = (view: string, data: string | null = null) => {
     if (view === 'profile') {
       if (data === 'self' && auth.address) {
+        userProf = auth.address;
+        targetView = 'userprofile';
         setUserProfileTarget(auth.address);
         setCurrentView('userprofile');
       } else {
+        prof = data;
         setProfileTarget(data);
-        setCurrentView(view);
+        setCurrentView('profile');
       }
     } else if (view === 'userprofile') {
       const target = data === 'self' || !data ? auth.address : data;
+      userProf = target;
       setUserProfileTarget(target);
       setCurrentView('userprofile');
     } else if (view === 'names') {
+      nameSearch = data;
       setNamesSearchTarget(data);
       setCurrentView('names');
     } else if (view === 'send') {
+      sendTarget = data || '';
       setSendRecipientTarget(data || '');
       setCurrentView('send');
     } else if (view === 'listForSale') {
+      targetView = 'marketplace';
       setCurrentView('marketplace');
     } else {
       setCurrentView(view);
     }
+
+    // Synchronize URL with browser history for ENS-grade shareable deep links
+    if (typeof window !== 'undefined') {
+      const search = new URLSearchParams();
+      if (targetView === 'profile' && prof) {
+        search.set('view', 'profile');
+        search.set('name', prof);
+      } else if (targetView === 'userprofile' && userProf) {
+        search.set('view', 'userprofile');
+        search.set('address', userProf);
+      } else if (targetView === 'send') {
+        search.set('view', 'send');
+        if (sendTarget) search.set('to', sendTarget);
+      } else if (targetView === 'names') {
+        search.set('view', 'names');
+        if (nameSearch) search.set('q', nameSearch);
+      } else if (targetView !== 'home') {
+        search.set('view', targetView);
+      }
+
+      const queryString = search.toString();
+      const newUrl = `/app${queryString ? `?${queryString}` : ''}`;
+      if (window.location.pathname + window.location.search !== newUrl) {
+        if (replaceHistory) {
+          window.history.replaceState({ view: targetView, data }, '', newUrl);
+        } else {
+          window.history.pushState({ view: targetView, data }, '', newUrl);
+        }
+      }
+    }
+
     window.scrollTo(0, 0);
   };
 
@@ -5690,7 +6107,7 @@ export default function App() {
         {currentView === 'marketplace' && <MarketplaceView navigateToProfile={(name) => navigateTo('profile', name)} auth={auth} ans={ans} navigateTo={navigateTo} />}
         {currentView === 'mynames' && <MyNamesView isConnected={auth.isConnected} connectWallet={() => auth.signIn()} auth={auth} ans={ans} balance={formattedBalance} navigateTo={navigateTo} />}
         {currentView === 'send' && <SendView isConnected={auth.isConnected} connectWallet={() => auth.signIn()} auth={auth} ans={ans} balance={formattedBalance} defaultRecipient={sendRecipientTarget} />}
-        {currentView === 'profile' && profileTarget && <NameProfileView name={profileTarget} navigateTo={navigateTo} />}
+        {currentView === 'profile' && profileTarget && <NameProfileView name={profileTarget} navigateTo={navigateTo} auth={auth} />}
         {currentView === 'userprofile' && userProfileTarget && <UserProfileView targetAddress={userProfileTarget} auth={auth} navigateTo={navigateTo} />}
       </main>
 
