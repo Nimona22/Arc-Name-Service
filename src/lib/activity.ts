@@ -163,7 +163,7 @@ export const KNOWN_ONCHAIN_ACTIVITIES: NameActivityItem[] = [
   {
     id: 'tx_b700f9087ec201422ef04bfca4db4964ca6cce0ffa1575a2a85d0b4b0553548c',
     name: 'feran.arc',
-    action: 'Bought Name',
+    action: 'Sold Name',
     amount: '10.0 USDC',
     from: '0x815289D5c67E533d008fd38C51B1159cFa9BDa0c',
     to: '0x5B16cCCB2A13Fd2c5feC3321f0cFA98bccBBDa7d',
@@ -183,7 +183,7 @@ export const KNOWN_ONCHAIN_ACTIVITIES: NameActivityItem[] = [
   {
     id: 'tx_c4da1bf6d29130c03915972e1485bf382abf9b3e4f274d50f61b16cee8dfc938',
     name: 'maler.arc',
-    action: 'Bought Name',
+    action: 'Sold Name',
     amount: '3.0 USDC',
     from: '0x815289D5c67E533d008fd38C51B1159cFa9BDa0c',
     to: '0x5B16cCCB2A13Fd2c5feC3321f0cFA98bccBBDa7d',
@@ -390,6 +390,14 @@ export function getSoldRecordsForName(cleanNameInput: string): NameActivityItem[
   const results: NameActivityItem[] = [];
   const knownSold = [
     {
+      name: 'feran.arc',
+      seller: '0x815289D5c67E533d008fd38C51B1159cFa9BDa0c',
+      buyer: '0x5B16cCCB2A13Fd2c5feC3321f0cFA98bccBBDa7d',
+      price: 10.0,
+      timestamp: 1728780813000,
+      txHash: '0xb700f9087ec201422ef04bfca4db4964ca6cce0ffa1575a2a85d0b4b0553548c',
+    },
+    {
       name: 'user1.arc',
       seller: '0x5B16cCCB2A13Fd2c5feC3321f0cFA98bccBBDa7d',
       buyer: '0x815289D5c67E533d008fd38C51B1159cFa9BDa0c',
@@ -534,24 +542,30 @@ export function getRealisticNameActivities(options: {
 }
 
 /**
- * Flexible address matching helper supporting full and prefix-truncated addresses
+ * Strict and secure address matching helper supporting full 42-char and ellipsis-shortened addresses
  */
 export function isAddressMatch(a?: string, b?: string): boolean {
   if (!a || !b) return false;
   const aNorm = a.trim().toLowerCase();
   const bNorm = b.trim().toLowerCase();
   if (aNorm === bNorm) return true;
-  if (aNorm.startsWith('0x') && bNorm.startsWith('0x')) {
-    const aClean = aNorm.replace(/[^0-9a-f]/g, '');
-    const bClean = bNorm.replace(/[^0-9a-f]/g, '');
-    if (aClean.length >= 6 && bClean.startsWith(aClean.slice(0, 6))) return true;
-    if (bClean.length >= 6 && aClean.startsWith(bClean.slice(0, 6))) return true;
+
+  // Handle ellipsis formatted addresses (e.g. 0x8152...da0c)
+  if (aNorm.includes('...') || bNorm.includes('...')) {
+    const full = aNorm.includes('...') ? bNorm : aNorm;
+    const trunc = aNorm.includes('...') ? aNorm : bNorm;
+    const parts = trunc.split('...');
+    if (parts.length === 2 && parts[0].length >= 4 && parts[1].length >= 4) {
+      return full.startsWith(parts[0]) && full.endsWith(parts[1]);
+    }
   }
+
   return false;
 }
 
 /**
- * Get activities for a specific user from global feed, individual name histories, and on-chain records
+ * Get activities for a specific user from global feed, individual name histories, and on-chain records.
+ * Strictly filters by actual wallet participation (isFromUser || isToUser).
  */
 export function getUserActivities(address: string, ownedNames: string[] = []): NameActivityItem[] {
   if (!address) return [];
@@ -560,7 +574,7 @@ export function getUserActivities(address: string, ownedNames: string[] = []): N
 
   const addUnique = (item: NameActivityItem) => {
     const key = item.txHash 
-      ? `${item.txHash}_${item.action}`
+      ? `${item.txHash}_${cleanName(item.name)}`
       : `${cleanName(item.name)}_${item.action}_${Math.floor(item.timestamp / 60000)}`;
     if (!seenKeys.has(key)) {
       seenKeys.add(key);
@@ -568,12 +582,11 @@ export function getUserActivities(address: string, ownedNames: string[] = []): N
     }
   };
 
-  // 0. Include confirmed real on-chain activity ledger transactions
+  // 0. Include confirmed real on-chain activity ledger transactions where user participated
   for (const item of KNOWN_ONCHAIN_ACTIVITIES) {
     const isFromUser = isAddressMatch(item.from, address);
     const isToUser = isAddressMatch(item.to, address);
-    const isOwnedName = item.name && ownedNames.some(on => cleanName(on) === cleanName(item.name));
-    if (isFromUser || isToUser || isOwnedName) {
+    if (isFromUser || isToUser) {
       addUnique(item);
     }
   }
@@ -586,8 +599,7 @@ export function getUserActivities(address: string, ownedNames: string[] = []): N
       for (const item of globalList) {
         const isFromUser = isAddressMatch(item.from, address);
         const isToUser = isAddressMatch(item.to, address);
-        const isOwnedName = item.name && ownedNames.some(on => cleanName(on) === cleanName(item.name));
-        if (isFromUser || isToUser || isOwnedName) {
+        if (isFromUser || isToUser) {
           addUnique(item);
         }
       }
@@ -596,29 +608,24 @@ export function getUserActivities(address: string, ownedNames: string[] = []): N
     console.warn('Failed reading global activities:', err);
   }
 
-  // 2. Check activities stored for all owned names
-  for (const name of ownedNames) {
-    const clean = cleanName(name);
-    if (!clean) continue;
-    try {
-      const nameActs = getStoredActivities(clean);
-      for (const act of nameActs) {
-        addUnique(act);
-      }
-    } catch {
-      // ignore
-    }
-  }
-
-  // 3. Check recently registered names in local storage for matching activities
+  // 2. Check sold listings in marketplace
   try {
-    const recent = getRecentlyRegisteredNames();
-    for (const r of recent) {
-      const clean = cleanName(r);
-      const nameActs = getStoredActivities(clean);
-      for (const act of nameActs) {
-        if (isAddressMatch(act.to, address) || isAddressMatch(act.from, address)) {
-          addUnique(act);
+    const soldList = getSoldListings();
+    if (Array.isArray(soldList)) {
+      for (const item of soldList) {
+        const isSeller = isAddressMatch(item.seller, address);
+        const isBuyer = isAddressMatch(item.buyer, address);
+        if (isSeller || isBuyer) {
+          addUnique({
+            id: `sold_${cleanName(item.name)}_${item.timestamp}`,
+            name: item.name.endsWith('.arc') ? item.name : `${item.name}.arc`,
+            action: 'Sold Name',
+            amount: `${item.price} USDC`,
+            from: item.seller,
+            to: item.buyer,
+            timestamp: item.timestamp,
+            txHash: item.txHash,
+          });
         }
       }
     }
@@ -626,51 +633,12 @@ export function getUserActivities(address: string, ownedNames: string[] = []): N
     // ignore
   }
 
-  // 4. Check sold listings in marketplace
-  try {
-    const soldRaw = localStorage.getItem('ans_marketplace_sold');
-    if (soldRaw) {
-      const soldList = JSON.parse(soldRaw);
-      if (Array.isArray(soldList)) {
-        for (const item of soldList) {
-          if (isAddressMatch(item.seller, address)) {
-            addUnique({
-              id: `sold_${cleanName(item.name)}_${item.timestamp}`,
-              name: item.name.endsWith('.arc') ? item.name : `${item.name}.arc`,
-              action: 'Sold Name',
-              amount: `${item.price} USDC`,
-              from: address,
-              to: item.buyer,
-              timestamp: item.timestamp,
-              txHash: item.txHash,
-            });
-          } else if (isAddressMatch(item.buyer, address)) {
-            addUnique({
-              id: `bought_${cleanName(item.name)}_${item.timestamp}`,
-              name: item.name.endsWith('.arc') ? item.name : `${item.name}.arc`,
-              action: 'Bought Name',
-              amount: `${item.price} USDC`,
-              from: item.seller,
-              to: address,
-              timestamp: item.timestamp,
-              txHash: item.txHash,
-            });
-          }
-        }
-      }
-    }
-  } catch {
-    // ignore
-  }
-
-  // 5. Ensure that every owned name has at least a 'Registered Name' transaction
+  // 3. For owned names where no activity has been logged yet, include a valid registered record
   for (const name of ownedNames) {
     const clean = cleanName(name);
     if (!clean) continue;
-    const hasReg = results.some(
-      r => cleanName(r.name) === clean && (r.action === 'Registered Name' || r.action === 'Gifted Name')
-    );
-    if (!hasReg) {
+    const hasAnyRecord = results.some(r => cleanName(r.name) === clean);
+    if (!hasAnyRecord) {
       addUnique({
         id: `onchain_reg_${clean}`,
         name: `${clean}.arc`,
@@ -683,7 +651,7 @@ export function getUserActivities(address: string, ownedNames: string[] = []): N
     }
   }
 
-  // 6. Sort newest first
+  // 4. Sort newest first
   return results.sort((a, b) => b.timestamp - a.timestamp);
 }
 

@@ -2830,7 +2830,11 @@ const OwnerProfileSnippet = ({
         </div>
         {ownerProfile.bio && <p className="text-gray-600 font-sans text-xs line-clamp-2 leading-relaxed">{ownerProfile.bio}</p>}
         <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500 mt-2">
-          {ownerProfile.twitter && <span>@{ownerProfile.twitter}</span>}
+          {ownerProfile.twitter && <span className="hover:text-gray-900 font-medium">@{ownerProfile.twitter}</span>}
+          {ownerProfile.github && <span className="hover:text-gray-900 font-medium">gh/{ownerProfile.github}</span>}
+          {ownerProfile.telegram && <span className="hover:text-gray-900 font-medium">t.me/{ownerProfile.telegram}</span>}
+          {ownerProfile.discord && <span className="hover:text-gray-900 font-medium">discord:{ownerProfile.discord}</span>}
+          {ownerProfile.location && <span>📍 {ownerProfile.location}</span>}
           {ownerProfile.website && <span>{ownerProfile.website.replace(/^https?:\/\//, '')}</span>}
         </div>
       </div>
@@ -4262,12 +4266,18 @@ const NameProfileView = ({
   const soldListing = clean === 'maler' || isActivelyListed ? null : getSoldListings().find(s => cleanName(s.name) === clean);
   const isKnownOnchain = CONFIRMED_ONCHAIN_NAMES.some(c => cleanName(c) === clean);
 
-  const hasOnchainOwner = (activeRecord && activeRecord.owner !== '0x0000000000000000000000000000000000000000') || (isKnownOnchain && !mockName);
-  const isRegistered = hasOnchainOwner || isActivelyListed || !!soldListing || !!mockName || !!mockListing;
+  const hasOnchainOwner = !!(activeRecord && activeRecord.owner && activeRecord.owner !== '0x0000000000000000000000000000000000000000');
+  const isRegistered = hasOnchainOwner || isActivelyListed || !!soldListing || (isKnownOnchain && !mockName) || !!mockName || !!mockListing;
 
-  const defaultKnownOwner = (clean === 'nimox' || clean === 'feran') ? '0x5B16cCCB2A13Fd2c5feC3321f0cFA98bccBBDa7d' : undefined;
-
-  const ownerStr = (hasOnchainOwner ? (activeRecord?.owner && activeRecord.owner !== '0x0000000000000000000000000000000000000000' ? activeRecord.owner : defaultKnownOwner || "0x5B16cCCB2A13Fd2c5feC3321f0cFA98bccBBDa7d") : isActivelyListed ? activeListing.seller : soldListing ? soldListing.buyer : mockListing ? mockListing.seller : mockName?.owner || "0x71C...9A23") as string;
+  const ownerStr = (hasOnchainOwner 
+    ? activeRecord.owner 
+    : isActivelyListed 
+      ? activeListing.seller 
+      : soldListing 
+        ? soldListing.buyer 
+        : mockListing 
+          ? mockListing.seller 
+          : mockName?.owner || "") as string;
   const listingPrice = isActivelyListed ? Number(formatUnits(activeListing.price, 6)) : mockListing ? mockListing.price : null;
 
   const isOwnerAddress = ownerStr.startsWith('0x') && ownerStr.length === 42;
@@ -4309,7 +4319,7 @@ const NameProfileView = ({
     return () => window.removeEventListener('ans_activity_updated', onUpdate);
   }, [name, hasOnchainOwner, activeRecord, repRecord, mockName, ownerStr]);
 
-  if (isLoadingDirect && !activeRecord && !isRegistered && !mockName && !mockListing && !soldListing) {
+  if (isLoadingDirect && !activeRecord && !activeListing) {
     return (
       <div className="max-w-2xl mx-auto pt-32 px-6 text-center pb-32">
         <div className="w-8 h-8 border-3 border-[#137A43] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
@@ -4720,6 +4730,9 @@ const UserProfileView = ({
 
   useEffect(() => {
     if (!targetAddress) return;
+    setDirectOwnedNames(null);
+    setDirectRepRecord(null);
+    setDirectTierNum(null);
     let cancelled = false;
 
     async function fetchDirectUserData() {
@@ -4787,12 +4800,9 @@ const UserProfileView = ({
     : (directOwnedNames || []);
 
   const ownedNames = useMemo(() => {
-    const isTarget0x5B16 = isAddressMatch(targetAddress, '0x5B16cCCB2A13Fd2c5feC3321f0cFA98bccBBDa7d');
-    const baseNames = effectiveRawOwnedNames.length > 0
-      ? effectiveRawOwnedNames
-      : (isTarget0x5B16 ? ['nimox', 'feran'] : []);
+    const baseNames = effectiveRawOwnedNames || [];
     return baseNames.filter(n => n.length > 0).map(n => n.endsWith('.arc') ? n : `${n}.arc`);
-  }, [effectiveRawOwnedNames, targetAddress]);
+  }, [effectiveRawOwnedNames]);
 
   const { data: tierNum } = useReadContract({
     address: REPUTATION_ADDRESS,
@@ -4826,11 +4836,8 @@ const UserProfileView = ({
         disputes: Number(effectiveRepRecord.disputeFlags),
       };
     }
-    if (isAddressMatch(targetAddress, '0x5B16cCCB2A13Fd2c5feC3321f0cFA98bccBBDa7d')) {
-      return { tier: 'Trusted', since: 'Oct 2026', sales: 2, buys: 5, tips: 1, disputes: 0 };
-    }
     return { tier: 'New', since: 'Recent', sales: 0, buys: 0, tips: 0, disputes: 0 };
-  }, [effectiveRepRecord, effectiveTierNum, targetAddress]);
+  }, [effectiveRepRecord, effectiveTierNum]);
 
   const avatarDisplay = profile.avatarUrl || profile.avatar?.trim() || (profile.displayName ? profile.displayName.slice(0, 2).toUpperCase() : targetAddress.slice(0, 4));
 
@@ -4999,9 +5006,40 @@ const UserProfileView = ({
                         </div>
                       </div>
                       <div>
+                        <label className="block text-xs font-sans font-medium text-gray-700 mb-2">GitHub Username</label>
+                        <input type="text" value={formData.github || ''} onChange={(e) => setFormData(p => ({ ...p, github: e.target.value }))} placeholder="username" className="w-full bg-[#FBFBFA] border border-[#E5E5E2] text-gray-900 font-sans p-3 rounded-xl focus:outline-none focus:border-[#137A43] text-sm" />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                      <div>
+                        <label className="block text-xs font-sans font-medium text-gray-700 mb-2">Telegram Handle</label>
+                        <div className="flex rounded-xl border border-[#E5E5E2] overflow-hidden bg-[#FBFBFA] focus-within:border-[#137A43]">
+                          <span className="px-3 py-3 text-gray-500 text-sm font-mono flex items-center bg-[#FBFBFA] border-r border-[#E5E5E2]">t.me/</span>
+                          <input type="text" value={formData.telegram || ''} onChange={(e) => setFormData(p => ({ ...p, telegram: e.target.value.replace(/^@/, '') }))} placeholder="username" className="w-full bg-transparent px-3 py-2 text-sm text-gray-900 focus:outline-none font-sans" />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-sans font-medium text-gray-700 mb-2">Discord Tag</label>
+                        <input type="text" value={formData.discord || ''} onChange={(e) => setFormData(p => ({ ...p, discord: e.target.value }))} placeholder="username#0000" className="w-full bg-[#FBFBFA] border border-[#E5E5E2] text-gray-900 font-sans p-3 rounded-xl focus:outline-none focus:border-[#137A43] text-sm" />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                      <div>
                         <label className="block text-xs font-sans font-medium text-gray-700 mb-2">Website URL</label>
                         <input type="url" value={formData.website || ''} onChange={(e) => setFormData(p => ({ ...p, website: e.target.value }))} placeholder="https://example.com" className="w-full bg-[#FBFBFA] border border-[#E5E5E2] text-gray-900 font-sans p-3 rounded-xl focus:outline-none focus:border-[#137A43] text-sm" />
                       </div>
+                      <div>
+                        <label className="block text-xs font-sans font-medium text-gray-700 mb-2">Location / Timezone</label>
+                        <input type="text" value={formData.location || ''} onChange={(e) => setFormData(p => ({ ...p, location: e.target.value }))} placeholder="e.g. Tokyo / UTC+9" className="w-full bg-[#FBFBFA] border border-[#E5E5E2] text-gray-900 font-sans p-3 rounded-xl focus:outline-none focus:border-[#137A43] text-sm" />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-sans font-medium text-gray-700 mb-2">Decentralized Web (IPFS / Contenthash)</label>
+                      <input type="text" value={formData.contentHash || ''} onChange={(e) => setFormData(p => ({ ...p, contentHash: e.target.value }))} placeholder="ipfs://bafybeic..." className="w-full bg-[#FBFBFA] border border-[#E5E5E2] text-gray-900 font-mono p-3 rounded-xl focus:outline-none focus:border-[#137A43] text-xs" />
+                      <p className="text-[11px] font-sans text-gray-400 mt-1">Allows resolving decentralized web pages hosted on IPFS directly under this identity.</p>
                     </div>
 
                     <div className="flex gap-3 pt-2">
@@ -5015,7 +5053,7 @@ const UserProfileView = ({
                  </form>
                ) : (
                  <div className="bg-white border border-[#E5E5E2] rounded-2xl p-6 shadow-sm">
-                    <h3 className="text-sm font-sans font-semibold text-gray-900 mb-4 flex items-center gap-2"><Info size={14} className="text-[#137A43]" /> About</h3>
+                    <h3 className="text-sm font-sans font-semibold text-gray-900 mb-4 flex items-center gap-2"><Info size={14} className="text-[#137A43]" /> About & Records</h3>
                     {profile.bio ? (
                       <p className="text-gray-700 font-sans text-base leading-relaxed">{profile.bio}</p>
                     ) : (
@@ -5033,9 +5071,34 @@ const UserProfileView = ({
                           <span>@{profile.twitter}</span>
                         </a>
                       )}
+                      {profile.github && (
+                        <a href={`https://github.com/${profile.github}`} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-gray-700 hover:text-gray-900 hover:underline font-medium">
+                          <span>gh/{profile.github}</span>
+                        </a>
+                      )}
+                      {profile.telegram && (
+                        <a href={`https://t.me/${profile.telegram}`} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-gray-700 hover:text-gray-900 hover:underline font-medium">
+                          <span>t.me/{profile.telegram}</span>
+                        </a>
+                      )}
+                      {profile.discord && (
+                        <span className="text-gray-700 font-medium">
+                          discord:{profile.discord}
+                        </span>
+                      )}
+                      {profile.location && (
+                        <span className="text-gray-600 flex items-center gap-1">
+                          📍 {profile.location}
+                        </span>
+                      )}
                       {profile.website && (
                         <a href={profile.website.startsWith('http') ? profile.website : `https://${profile.website}`} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-[#137A43] hover:underline font-medium">
                           <ArrowUpRight size={14} /> {profile.website.replace(/^https?:\/\//, '')}
+                        </a>
+                      )}
+                      {profile.contentHash && (
+                        <a href={profile.contentHash.startsWith('http') ? profile.contentHash : `https://ipfs.io/ipfs/${profile.contentHash.replace('ipfs://', '')}`} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs font-mono text-[#137A43] bg-[#E8F5E9] px-2.5 py-1 rounded-md hover:underline font-medium">
+                          <span>🌐 Decentralized Web ({profile.contentHash.slice(0, 12)}...)</span>
                         </a>
                       )}
                     </div>
@@ -5137,28 +5200,59 @@ const UserProfileView = ({
                           <CreditCard size={18} className="text-[#137A43]" />
                         )}
                       </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <p className="text-gray-900 font-sans font-bold text-sm">{tx.action}</p>
-                          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#E8F5E9] text-[#137A43] font-semibold">
-                            On-Chain
-                          </span>
-                        </div>
-                        <p className="text-gray-500 font-mono text-xs mt-0.5 flex flex-wrap items-center gap-2">
-                          <span className="font-bold text-gray-700">{tx.name}</span>
-                          {tx.action === 'Sold Name' && tx.to && (
-                            <span className="text-gray-500 font-sans text-[11px]">
-                              Sold to {tx.to.startsWith('0x') ? `${tx.to.slice(0, 6)}...${tx.to.slice(-4)}` : tx.to}
-                            </span>
-                          )}
-                          {tx.action === 'Bought Name' && tx.from && (
-                            <span className="text-gray-500 font-sans text-[11px]">
-                              Bought from {tx.from.startsWith('0x') ? `${tx.from.slice(0, 6)}...${tx.from.slice(-4)}` : tx.from}
-                            </span>
-                          )}
-                          {tx.note && <span className="text-gray-500 font-sans italic">"{tx.note}"</span>}
-                        </p>
-                      </div>
+                      {(() => {
+                        const isSale = tx.action === 'Sold Name' || tx.action === 'Bought Name';
+                        const isBuyer = isSale && isAddressMatch(tx.to, targetAddress);
+                        const isSeller = isSale && isAddressMatch(tx.from, targetAddress);
+
+                        const isTip = tx.action === 'Sent Tip' || tx.action === 'Received Tip';
+                        const isTipRecipient = isTip && isAddressMatch(tx.to, targetAddress);
+
+                        const isGift = tx.action === 'Gifted Name' || tx.action === 'Received Gift';
+                        const isGiftRecipient = isGift && isAddressMatch(tx.to, targetAddress);
+
+                        const actionLabel = isBuyer 
+                          ? 'Bought Name' 
+                          : isSeller 
+                            ? 'Sold Name' 
+                            : isTipRecipient 
+                              ? 'Received Tip' 
+                              : isGiftRecipient 
+                                ? 'Received Gift' 
+                                : tx.action;
+
+                        const counterpart = isBuyer
+                          ? `Bought from ${tx.from && tx.from.startsWith('0x') ? `${tx.from.slice(0, 6)}...${tx.from.slice(-4)}` : tx.from || 'Seller'}`
+                          : isSeller
+                            ? `Sold to ${tx.to && tx.to.startsWith('0x') ? `${tx.to.slice(0, 6)}...${tx.to.slice(-4)}` : tx.to || 'Buyer'}`
+                            : isTipRecipient
+                              ? `Received from ${tx.from && tx.from.startsWith('0x') ? `${tx.from.slice(0, 6)}...${tx.from.slice(-4)}` : tx.from || 'Sender'}`
+                              : isTip
+                                ? `Tip to ${tx.to && tx.to.startsWith('0x') ? `${tx.to.slice(0, 6)}...${tx.to.slice(-4)}` : tx.to || 'Recipient'}`
+                                : isGiftRecipient
+                                  ? `Gifted from ${tx.from && tx.from.startsWith('0x') ? `${tx.from.slice(0, 6)}...${tx.from.slice(-4)}` : tx.from || 'Gifter'}`
+                                  : null;
+
+                        return (
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <p className="text-gray-900 font-sans font-bold text-sm">{actionLabel}</p>
+                              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#E8F5E9] text-[#137A43] font-semibold">
+                                On-Chain
+                              </span>
+                            </div>
+                            <p className="text-gray-500 font-mono text-xs mt-0.5 flex flex-wrap items-center gap-2">
+                              <span className="font-bold text-gray-700">{tx.name}</span>
+                              {counterpart && (
+                                <span className="text-gray-500 font-sans text-[11px]">
+                                  {counterpart}
+                                </span>
+                              )}
+                              {tx.note && <span className="text-gray-500 font-sans italic">"{tx.note}"</span>}
+                            </p>
+                          </div>
+                        );
+                      })()}
                     </div>
                     <div className="sm:text-right">
                       <p className="text-gray-900 font-mono font-bold text-sm">{tx.amount}</p>

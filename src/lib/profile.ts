@@ -7,7 +7,12 @@ export interface UserProfile {
   displayName?: string;
   bio?: string; // max 160 chars
   twitter?: string; // handle without @
+  github?: string; // handle
+  telegram?: string; // username
+  discord?: string; // username or tag
   website?: string;
+  location?: string;
+  contentHash?: string; // IPFS CID or decentralised website hash
   avatar?: string;
   avatarUrl?: string; // profile picture url or compressed data url
   bannerUrl?: string; // banner picture url or compressed data url
@@ -135,6 +140,11 @@ export async function fetchProfileGlobal(address: string): Promise<UserProfile |
         bannerUrl: data.banner_url ?? existingLocal.bannerUrl,
         twitter: data.twitter ?? existingLocal.twitter,
         website: data.website ?? existingLocal.website,
+        github: existingLocal.github,
+        telegram: existingLocal.telegram,
+        discord: existingLocal.discord,
+        location: existingLocal.location,
+        contentHash: existingLocal.contentHash,
         // Public queries never return email; preserve existing local-only email for this wallet if present
         email: existingLocal.email,
         avatar: existingLocal.avatar,

@@ -230,20 +230,27 @@ export interface SoldListing {
 }
 
 const SOLD_STORAGE_KEY = 'ans_marketplace_sold';
+const SOLD_STORAGE_VERSION = 'ans_sold_v3';
 
 export const INITIAL_SOLD_LISTINGS: SoldListing[] = [
   {
     name: 'feran.arc',
-    seller: '0x5B16cCCB2A13Fd2c5feC3321f0cFA98bccBBDa7d',
-    buyer: '0x815289D5c67E533d008fd38C51B1159cFa9BDa0c',
-    price: 5.0,
-    timestamp: 1791845600000,
+    seller: '0x815289D5c67E533d008fd38C51B1159cFa9BDa0c',
+    buyer: '0x5B16cCCB2A13Fd2c5feC3321f0cFA98bccBBDa7d',
+    price: 10.0,
+    timestamp: 1728780813000,
     txHash: '0xb700f9087ec201422ef04bfca4db4964ca6cce0ffa1575a2a85d0b4b0553548c',
   },
 ];
 
 export function getSoldListings(activeNames?: Set<string> | string[]): SoldListing[] {
   try {
+    // Migration: clear stale inverted sold records from older versions
+    if (typeof window !== 'undefined' && localStorage.getItem(SOLD_STORAGE_VERSION) !== 'true') {
+      localStorage.removeItem(SOLD_STORAGE_KEY);
+      localStorage.setItem(SOLD_STORAGE_VERSION, 'true');
+    }
+
     const raw = localStorage.getItem(SOLD_STORAGE_KEY);
     let parsed: SoldListing[] = [];
     if (!raw) {
@@ -265,10 +272,17 @@ export function getSoldListings(activeNames?: Set<string> | string[]): SoldListi
       return c !== 'genesis' && c !== 'crypto' && c !== 'alpha' && c !== 'maler';
     });
 
-    // Ensure confirmed on-chain sold listings are present if not already
+    // Ensure confirmed on-chain sold listings are present if not already, and repair any inverted entries
     for (const init of INITIAL_SOLD_LISTINGS) {
-      if (!purged.some((p: SoldListing) => cleanName(p.name) === cleanName(init.name))) {
+      const existingIdx = purged.findIndex((p: SoldListing) => cleanName(p.name) === cleanName(init.name));
+      if (existingIdx === -1) {
         purged.push(init);
+      } else if (
+        purged[existingIdx].seller.toLowerCase() !== init.seller.toLowerCase() ||
+        purged[existingIdx].buyer.toLowerCase() !== init.buyer.toLowerCase() ||
+        purged[existingIdx].price !== init.price
+      ) {
+        purged[existingIdx] = { ...purged[existingIdx], ...init };
       }
     }
 
@@ -346,8 +360,8 @@ export async function syncSoldListingsFromLogs(activeListingsInput?: Marketplace
           const timestamp = item.timestamp ? new Date(item.timestamp).getTime() : 1791845600000;
           const txHash = item.transaction_hash;
 
-          const exists = updated.some(s => cleanName(s.name) === clean && s.txHash === txHash);
-          if (!exists) {
+          const idx = updated.findIndex(s => cleanName(s.name) === clean && s.txHash === txHash);
+          if (idx === -1) {
             updated.unshift({
               name,
               seller,
@@ -356,6 +370,13 @@ export async function syncSoldListingsFromLogs(activeListingsInput?: Marketplace
               timestamp,
               txHash,
             });
+            changed = true;
+          } else if (
+            updated[idx].seller.toLowerCase() !== seller.toLowerCase() ||
+            updated[idx].buyer.toLowerCase() !== buyer.toLowerCase() ||
+            updated[idx].price !== price
+          ) {
+            updated[idx] = { ...updated[idx], seller, buyer, price, timestamp };
             changed = true;
           }
         } catch {}
