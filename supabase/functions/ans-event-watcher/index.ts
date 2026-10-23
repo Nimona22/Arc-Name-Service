@@ -35,8 +35,8 @@ export const arcTestnet = {
   name: 'Arc Testnet',
   nativeCurrency: { name: 'Arc', symbol: 'ARC', decimals: 18 },
   rpcUrls: {
-    default: { http: ['https://rpc.testnet.arc.network', 'https://rpc.testnet.arc.io'] },
-    public:  { http: ['https://rpc.testnet.arc.network', 'https://rpc.testnet.arc.io'] },
+    default: { http: ['https://rpc.testnet.arc.io'] },
+    public:  { http: ['https://rpc.testnet.arc.io'] },
   },
 };
 
@@ -849,7 +849,7 @@ serve(async (req: Request) => {
     const maxBlocks = body?.maxBlocks ? BigInt(body.maxBlocks) : DEFAULT_MAX_BLOCKS_PER_INVOCATION;
     const startBlock = body?.startBlock ? BigInt(body.startBlock) : null;
 
-    const rpcUrl = Deno.env.get('RPC_URL') || 'https://rpc.testnet.arc.network';
+    const rpcUrl = Deno.env.get('RPC_URL') || 'https://rpc.testnet.arc.io';
     const ansAddress = (Deno.env.get('ANS_CONTRACT_ADDRESS') || DEFAULT_ANS_ADDRESS).toLowerCase();
     const tippingAddress = (Deno.env.get('TIPPING_CONTRACT_ADDRESS') || ansAddress).toLowerCase();
 
