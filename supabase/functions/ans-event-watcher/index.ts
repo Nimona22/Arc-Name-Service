@@ -499,7 +499,7 @@ export async function pollChunk({
         }
       }
     } else {
-      const [rawSold, rawTip, rawListed, rawCancelled, rawTransferred] = await Promise.all([
+      const [rawSold, rawTip, rawGifted, rawListed, rawCancelled, rawTransferred] = await Promise.all([
         rpcClient.getLogs({
           address: ansAddress,
           events: [NAME_SOLD_EVENT],
@@ -509,6 +509,12 @@ export async function pollChunk({
         rpcClient.getLogs({
           address: tippingAddress,
           events: [TIP_SENT_EVENT],
+          fromBlock,
+          toBlock,
+        }),
+        rpcClient.getLogs({
+          address: ansAddress,
+          events: [NAME_GIFTED_EVENT],
           fromBlock,
           toBlock,
         }),
@@ -553,6 +559,18 @@ export async function pollChunk({
             topics: log.topics,
           });
           if (decoded.eventName === 'TipSent') tipLogs.push({ ...log, decoded });
+        } catch {}
+      }
+
+      for (const log of rawGifted) {
+        if (log.address.toLowerCase() !== ansAddress) continue;
+        try {
+          const decoded = decodeEventLog({
+            abi: [NAME_GIFTED_EVENT],
+            data: log.data,
+            topics: log.topics,
+          });
+          if (decoded.eventName === 'NameGifted') giftedLogs.push({ ...log, decoded });
         } catch {}
       }
 
