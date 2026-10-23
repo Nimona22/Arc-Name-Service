@@ -130,21 +130,41 @@ export async function acquireDistributedLock(
     // Expired lease -> safe to acquire/renew
   }
 
-  // 2. Upsert lock row with our unique execution token
-  const { error: upsertErr } = await supabase.from('watcher_cursors').upsert(
-    {
-      id: lockId,
-      last_block: token,
-      updated_at: new Date(now).toISOString(),
-    },
-    { onConflict: 'id' }
-  );
+  // 2. Claim the lock without an unconditional upsert, which can overwrite
+  // another invocation's lease between the read and write.
+  const lockRow = {
+    id: lockId,
+    last_block: token,
+    updated_at: new Date(now).toISOString(),
+  };
 
-  if (upsertErr) {
-    return { acquired: false, reason: `DB_UPSERT_ERROR: ${upsertErr.message}` };
+  if (!existing) {
+    const { error: insertErr } = await supabase
+      .from('watcher_cursors')
+      .insert(lockRow);
+
+    if (insertErr) {
+      return { acquired: false, reason: `LOCK_INSERT_FAILED: ${insertErr.message}` };
+    }
+  } else {
+    // Compare-and-swap: update only if the row still has the timestamp we read.
+    const { data: claimed, error: claimErr } = await supabase
+      .from('watcher_cursors')
+      .update({ last_block: token, updated_at: lockRow.updated_at })
+      .eq('id', lockId)
+      .eq('updated_at', existing.updated_at)
+      .select('last_block')
+      .maybeSingle();
+
+    if (claimErr) {
+      return { acquired: false, reason: `LOCK_CLAIM_FAILED: ${claimErr.message}` };
+    }
+    if (claimed?.last_block !== token) {
+      return { acquired: false, reason: 'LOCK_RACE_LOST' };
+    }
   }
 
-  // 3. Verify that our token won the lease
+  // 3. Verify the claimed lease token
   const { data: verified, error: verifyErr } = await supabase
     .from('watcher_cursors')
     .select('last_block')
@@ -329,7 +349,9 @@ export async function getLastBlock(client: any): Promise<bigint | null> {
 
 export async function setLastBlock(client: any, block: bigint): Promise<boolean> {
   const blockBigInt = BigInt(block);
-  const current = await getLastBlock(client).catch(() => null);
+  // A cursor read failure must fail closed; treating it as an empty cursor
+  // could overwrite a valid high-water mark.
+  const current = await getLastBlock(client);
   if (current !== null && blockBigInt < current) {
     // Monotonic safety: never regress backwards
     return true;
