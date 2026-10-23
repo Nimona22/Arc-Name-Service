@@ -6,15 +6,15 @@ export interface NameActivityItem {
   id: string;
   name: string; // e.g. "nimox.arc"
   action:
-    | 'Registered Name'
-    | 'Received Tip'
-    | 'Sent Tip'
-    | 'Bought Name'
-    | 'Sold Name'
-    | 'Gifted Name'
-    | 'Listed for Sale'
-    | 'Renewed Name'
-    | 'Transferred Name';
+  | 'Registered Name'
+  | 'Received Tip'
+  | 'Sent Tip'
+  | 'Bought Name'
+  | 'Sold Name'
+  | 'Gifted Name'
+  | 'Listed for Sale'
+  | 'Renewed Name'
+  | 'Transferred Name';
   amount: string; // e.g. "1.5 USDC", "50 USDC", "-"
   from: string; // e.g. "Arc Protocol", "0x5B16...", "bob.arc"
   to?: string;
@@ -137,92 +137,20 @@ export function recordActivity(item: Omit<NameActivityItem, 'id'>): NameActivity
   return newItem;
 }
 
-export const CONFIRMED_ONCHAIN_NAMES = ['nimox.arc', 'feran.arc', 'user1.arc', 'maler.arc', 'ferar.arc'] as const;
+export const CONFIRMED_ONCHAIN_NAMES: readonly string[] = [];
 
-export const KNOWN_ONCHAIN_ACTIVITIES: NameActivityItem[] = [
-  {
-    id: 'tx_79f4d112bd5875294ca20671c02a4c9dff6bd145990a0abb2bd0de849f7fa03b',
-    name: 'maler.arc',
-    action: 'Sent Tip',
-    amount: '2.0 USDC',
-    from: '0x5B16cCCB2A13Fd2c5feC3321f0cFA98bccBBDa7d',
-    to: '0x815289D5c67E533d008fd38C51B1159cFa9BDa0c',
-    note: 'Thanks bro',
-    timestamp: 1728863191000,
-    txHash: '0x79f4d112bd5875294ca20671c02a4c9dff6bd145990a0abb2bd0de849f7fa03b',
-  },
-  {
-    id: 'tx_0665c1f2cf0df31295d6dbadd911d43b948f5e2e6ca0edf9dd094dfa38e9630a',
-    name: 'ferar.arc',
-    action: 'Sold Name',
-    amount: '5.0 USDC',
-    from: '0x5B16cCCB2A13Fd2c5feC3321f0cFA98bccBBDa7d',
-    to: '0x815289D5c67E533d008fd38C51B1159cFa9BDa0c',
-    timestamp: 1728857428000,
-    txHash: '0x0665c1f2cf0df31295d6dbadd911d43b948f5e2e6ca0edf9dd094dfa38e9630a',
-  },
-  {
-    id: 'tx_b700f9087ec201422ef04bfca4db4964ca6cce0ffa1575a2a85d0b4b0553548c',
-    name: 'feran.arc',
-    action: 'Sold Name',
-    amount: '10.0 USDC',
-    from: '0x815289D5c67E533d008fd38C51B1159cFa9BDa0c',
-    to: '0x5B16cCCB2A13Fd2c5feC3321f0cFA98bccBBDa7d',
-    timestamp: 1728780813000,
-    txHash: '0xb700f9087ec201422ef04bfca4db4964ca6cce0ffa1575a2a85d0b4b0553548c',
-  },
-  {
-    id: 'tx_446af6b1853eeca8fc74147a2a4aaf50b3243fef9023bf842a7b128a05c2cd07',
-    name: 'user1.arc',
-    action: 'Sold Name',
-    amount: '5.0 USDC',
-    from: '0x5B16cCCB2A13Fd2c5feC3321f0cFA98bccBBDa7d',
-    to: '0x815289D5c67E533d008fd38C51B1159cFa9BDa0c',
-    timestamp: 1728606952000,
-    txHash: '0x446af6b1853eeca8fc74147a2a4aaf50b3243fef9023bf842a7b128a05c2cd07',
-  },
-  {
-    id: 'tx_c4da1bf6d29130c03915972e1485bf382abf9b3e4f274d50f61b16cee8dfc938',
-    name: 'maler.arc',
-    action: 'Sold Name',
-    amount: '3.0 USDC',
-    from: '0x815289D5c67E533d008fd38C51B1159cFa9BDa0c',
-    to: '0x5B16cCCB2A13Fd2c5feC3321f0cFA98bccBBDa7d',
-    timestamp: 1728605595000,
-    txHash: '0xc4da1bf6d29130c03915972e1485bf382abf9b3e4f274d50f61b16cee8dfc938',
-  },
-  {
-    id: 'tx_098bae77bbc92e28095537e080ac87e7c03e6215152e6c54be25b973a1ba0b5a',
-    name: 'user1.arc',
-    action: 'Registered Name',
-    amount: '2.75 USDC',
-    from: 'Arc Protocol',
-    to: '0x5B16cCCB2A13Fd2c5feC3321f0cFA98bccBBDa7d',
-    timestamp: 1728600284000,
-    txHash: '0x098bae77bbc92e28095537e080ac87e7c03e6215152e6c54be25b973a1ba0b5a',
-  },
-  {
-    id: 'tx_b64d5d876b54974e2bd772e7388bb1bfe816e731c647d4e70ff46b1cb358471b',
-    name: 'nimox.arc',
-    action: 'Registered Name',
-    amount: '1.5 USDC',
-    from: 'Arc Protocol',
-    to: '0x5B16cCCB2A13Fd2c5feC3321f0cFA98bccBBDa7d',
-    timestamp: 1728597677000,
-    txHash: '0xb64d5d876b54974e2bd772e7388bb1bfe816e731c647d4e70ff46b1cb358471b',
-  },
-];
+export const KNOWN_ONCHAIN_ACTIVITIES: NameActivityItem[] = [];
 
 /**
  * Get recently registered names from storage & activity logs
  */
 export function getRecentlyRegisteredNames(): string[] {
   try {
-    const raw = localStorage.getItem('ans_recent_registered');
+    const raw = localStorage.getItem(`ans_recent_registered_${ANS_ADDRESS}`);
     const list: string[] = raw ? JSON.parse(raw) : [];
 
-    // Also extract from global activities
-    const globalRaw = localStorage.getItem('ans_global_activities');
+    // Also extract from contract-scoped global activities
+    const globalRaw = localStorage.getItem(`ans_global_activities_${ANS_ADDRESS}`);
     if (globalRaw) {
       const activities = JSON.parse(globalRaw);
       for (const act of activities) {
@@ -263,10 +191,10 @@ export async function syncRecentRegisteredNamesFromLogs(): Promise<string[]> {
     for (const item of items) {
       const t0 = item.topics?.[0];
       if (['0x1860dd28d40eee8a69552879a055b5c8f1271081a42ffade0abb42d7edf509f1',
-           '0xf936ba22d566eab894630104cae90a56f965c7cc0f64f7a6b3e1090793462e58',
-           '0xe3202271e290250caf3bcfb96c2e7e8e5f63158e26901feb4c260069737892ef',
-           '0x21e177c2bf9adbd548d25cc65d54b697122f907257d8318bddc22375fe666de8',
-           '0xc87e6029eb4b9211a0eb39f94b63248b8b1660b93a577aa53d04aeaf66ca77bc'].includes(t0)) {
+        '0xf936ba22d566eab894630104cae90a56f965c7cc0f64f7a6b3e1090793462e58',
+        '0xe3202271e290250caf3bcfb96c2e7e8e5f63158e26901feb4c260069737892ef',
+        '0x21e177c2bf9adbd548d25cc65d54b697122f907257d8318bddc22375fe666de8',
+        '0xc87e6029eb4b9211a0eb39f94b63248b8b1660b93a577aa53d04aeaf66ca77bc'].includes(t0)) {
         try {
           const decoded = decodeAbiParameters([{ type: 'string' }], item.data);
           const rawName = decoded[0];
@@ -276,13 +204,32 @@ export async function syncRecentRegisteredNamesFromLogs(): Promise<string[]> {
               list.push(formatted);
               changed = true;
             }
+            // Auto-record real on-chain registration activity with block timestamp
+            const itemTs = item.block_timestamp || item.timestamp;
+            if (itemTs && t0 === '0x1860dd28d40eee8a69552879a055b5c8f1271081a42ffade0abb42d7edf509f1') {
+              const clean = cleanName(rawName);
+              const owner = item.topics?.[1] ? ('0x' + item.topics[1].slice(26)) : '';
+              const blockMs = new Date(itemTs).getTime();
+              const existing = getStoredActivities(clean);
+              if (!existing.some(a => a.action === 'Registered Name')) {
+                recordActivity({
+                  name: formatted,
+                  action: 'Registered Name',
+                  amount: calculateRegistrationPriceUSDC(clean, 12),
+                  from: 'Arc Protocol',
+                  to: owner,
+                  timestamp: blockMs,
+                  txHash: item.transaction_hash,
+                });
+              }
+            }
           }
-        } catch {}
+        } catch { }
       }
     }
 
     if (changed) {
-      localStorage.setItem('ans_recent_registered', JSON.stringify(list));
+      localStorage.setItem(`ans_recent_registered_${ANS_ADDRESS}`, JSON.stringify(list));
       window.dispatchEvent(new CustomEvent('ans_recent_registered_updated', { detail: list }));
     }
     return list;
@@ -301,7 +248,7 @@ export function addRecentlyRegisteredName(name: string): void {
   try {
     const current = getRecentlyRegisteredNames();
     const updated = [fullName, ...current.filter(n => cleanName(n) !== clean)].slice(0, 12);
-    localStorage.setItem('ans_recent_registered', JSON.stringify(updated));
+    localStorage.setItem(`ans_recent_registered_${ANS_ADDRESS}`, JSON.stringify(updated));
     window.dispatchEvent(new CustomEvent('ans_recent_registered_updated', { detail: fullName }));
   } catch (err) {
     console.error('Failed to add recently registered name:', err);
@@ -356,6 +303,36 @@ export function detectRegistrationDetails(
     { months: 12, seconds: 360 * 86400 },
   ];
 
+  // Check known on-chain activities first
+  const known = KNOWN_ONCHAIN_ACTIVITIES.find(
+    k => cleanName(k.name) === clean && (k.action === 'Registered Name' || k.action === 'Gifted Name')
+  );
+  if (known && known.timestamp) {
+    const diff = expirySeconds - Math.floor(known.timestamp / 1000);
+    const match = standardDurations.find(d => Math.abs(d.seconds - diff) < 7200);
+    const durMonths = match ? match.months : 12;
+    return {
+      registrationTimestamp: known.timestamp,
+      durationMonths: durMonths,
+      priceUSDC: known.amount || calculateRegistrationPriceUSDC(clean, durMonths),
+    };
+  }
+
+  // Check stored activities
+  const stored = getStoredActivities(clean).find(
+    a => a.action === 'Registered Name' || a.action === 'Gifted Name'
+  );
+  if (stored && stored.timestamp) {
+    const diff = expirySeconds - Math.floor(stored.timestamp / 1000);
+    const match = standardDurations.find(d => Math.abs(d.seconds - diff) < 7200);
+    const durMonths = match ? match.months : 12;
+    return {
+      registrationTimestamp: stored.timestamp,
+      durationMonths: durMonths,
+      priceUSDC: stored.amount || calculateRegistrationPriceUSDC(clean, durMonths),
+    };
+  }
+
   // If memberSince exists and matches expiry - memberSince
   if (memberSinceSeconds && memberSinceSeconds > 0) {
     const diff = expirySeconds - memberSinceSeconds;
@@ -389,42 +366,13 @@ export function detectRegistrationDetails(
 export function getSoldRecordsForName(cleanNameInput: string): NameActivityItem[] {
   const clean = cleanName(cleanNameInput);
   const results: NameActivityItem[] = [];
-  const knownSold = [
-    {
-      name: 'feran.arc',
-      seller: '0x815289D5c67E533d008fd38C51B1159cFa9BDa0c',
-      buyer: '0x5B16cCCB2A13Fd2c5feC3321f0cFA98bccBBDa7d',
-      price: 10.0,
-      timestamp: 1728780813000,
-      txHash: '0xb700f9087ec201422ef04bfca4db4964ca6cce0ffa1575a2a85d0b4b0553548c',
-    },
-    {
-      name: 'user1.arc',
-      seller: '0x5B16cCCB2A13Fd2c5feC3321f0cFA98bccBBDa7d',
-      buyer: '0x815289D5c67E533d008fd38C51B1159cFa9BDa0c',
-      price: 5.0,
-      timestamp: 1728606952000,
-      txHash: '0x446af6b1853eeca8fc74147a2a4aaf50b3243fef9023bf842a7b128a05c2cd07',
-    },
-    {
-      name: 'ferar.arc',
-      seller: '0x5B16cCCB2A13Fd2c5feC3321f0cFA98bccBBDa7d',
-      buyer: '0x815289D5c67E533d008fd38C51B1159cFa9BDa0c',
-      price: 5.0,
-      timestamp: 1728857428000,
-      txHash: '0x0665c1f2cf0df31295d6dbadd911d43b948f5e2e6ca0edf9dd094dfa38e9630a',
-    },
-  ];
 
   try {
-    const raw = localStorage.getItem('ans_marketplace_sold');
-    const list = raw ? JSON.parse(raw) : [];
-    // Ensure maler is not treated as sold
+    const list = getSoldListings();
     const filteredList = (Array.isArray(list) ? list : []).filter(item => cleanName(item.name) !== 'maler');
-    const combined = [...filteredList, ...knownSold];
     const seenHashes = new Set<string>();
 
-    for (const item of combined) {
+    for (const item of filteredList) {
       if (cleanName(item.name) === clean) {
         const key = item.txHash || `${item.timestamp}_${item.price}`;
         if (!seenHashes.has(key)) {
@@ -442,7 +390,7 @@ export function getSoldRecordsForName(cleanNameInput: string): NameActivityItem[
         }
       }
     }
-  } catch {}
+  } catch { }
 
   return results;
 }
@@ -574,7 +522,7 @@ export function getUserActivities(address: string, ownedNames: string[] = []): N
   const seenKeys = new Set<string>();
 
   const addUnique = (item: NameActivityItem) => {
-    const key = item.txHash 
+    const key = item.txHash
       ? `${item.txHash}_${cleanName(item.name)}`
       : `${cleanName(item.name)}_${item.action}_${Math.floor(item.timestamp / 60000)}`;
     if (!seenKeys.has(key)) {
@@ -620,7 +568,7 @@ export function getUserActivities(address: string, ownedNames: string[] = []): N
           addUnique({
             id: `sold_${cleanName(item.name)}_${item.timestamp}`,
             name: item.name.endsWith('.arc') ? item.name : `${item.name}.arc`,
-            action: 'Sold Name',
+            action: isBuyer && !isSeller ? 'Bought Name' : 'Sold Name',
             amount: `${item.price} USDC`,
             from: item.seller,
             to: item.buyer,
@@ -634,20 +582,30 @@ export function getUserActivities(address: string, ownedNames: string[] = []): N
     // ignore
   }
 
-  // 3. For owned names where no activity has been logged yet, include a valid registered record
+  // 3. For owned names where no activity has been logged yet, include a valid registered record with accurate timestamp
   for (const name of ownedNames) {
     const clean = cleanName(name);
     if (!clean) continue;
     const hasAnyRecord = results.some(r => cleanName(r.name) === clean);
     if (!hasAnyRecord) {
+      const known = KNOWN_ONCHAIN_ACTIVITIES.find(
+        k => cleanName(k.name) === clean && (k.action === 'Registered Name' || k.action === 'Gifted Name')
+      );
+      const stored = getStoredActivities(clean).find(
+        a => a.action === 'Registered Name' || a.action === 'Gifted Name'
+      );
+      const regTs = known?.timestamp || stored?.timestamp || 1791669677000;
+      const price = known?.amount || stored?.amount || calculateRegistrationPriceUSDC(clean, 12);
+
       addUnique({
         id: `onchain_reg_${clean}`,
         name: `${clean}.arc`,
         action: 'Registered Name',
-        amount: calculateRegistrationPriceUSDC(clean, 12),
+        amount: price,
         from: 'Arc Protocol',
         to: address,
-        timestamp: Date.now() - 3600000,
+        timestamp: regTs,
+        txHash: known?.txHash || stored?.txHash,
       });
     }
   }

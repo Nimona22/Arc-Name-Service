@@ -62,7 +62,7 @@ contract ANSHandler is Test {
 
         // Skip if name already active or actor already at cap
         if (!ans.isAvailable(nm)) return;
-        if (ans.nameCount(actor) >= 3) return;
+        if (ans.getNamesByOwner(actor).length >= ans.MAX_ACTIVE_NAMES_PER_USER()) return;
 
         // Mint more USDC if needed
         uint256 price = ans.getPrice(nm, 3);
@@ -141,6 +141,22 @@ contract ArcNameServiceTest is Test {
         vm.startPrank(alice);
         usdc.approve(address(ans), type(uint256).max);
         ans.register(name, dur);
+        vm.stopPrank();
+    }
+
+    function _fillActiveNames(address user, bytes1 tag) internal {
+        vm.startPrank(user);
+        usdc.approve(address(ans), type(uint256).max);
+        for (uint8 i = 0; i < 10; i++) {
+            bytes memory b = new bytes(6);
+            b[0] = "c";
+            b[1] = "a";
+            b[2] = "p";
+            b[3] = tag;
+            b[4] = "0";
+            b[5] = bytes1(uint8(0x30 + i));
+            ans.register(string(b), 3);
+        }
         vm.stopPrank();
     }
 
@@ -299,6 +315,51 @@ contract ArcNameServiceTest is Test {
         assertEq(ans.nameCount(alice), 2);
     }
 
+    function test_Register_ReRegisterOwnExpiredName_DoesNotDesyncNameCount() public {
+        assertEq(ans.nameCount(alice), 0);
+        _registerAlice("myname", 3);
+        assertEq(ans.nameCount(alice), 1);
+
+        // Fast-forward past expiry
+        skip(3 * MONTH + 1);
+        assertTrue(ans.isAvailable("myname"), "Name should be available after expiry");
+
+        // Alice re-registers her own expired name
+        vm.startPrank(alice);
+        usdc.approve(address(ans), type(uint256).max);
+        ans.register("myname", 3);
+        vm.stopPrank();
+
+        // nameCount must remain 1 (slot preserved), not increment to 2
+        assertEq(ans.nameCount(alice), 1, "nameCount should remain 1 upon re-registering own expired name");
+
+        // getNamesByOwner should report exactly 1 active name
+        string[] memory owned = ans.getNamesByOwner(alice);
+        assertEq(owned.length, 1);
+        assertEq(owned[0], "myname");
+    }
+
+    function test_GiftName_ReRegisterRecipientExpiredName_DoesNotDesyncNameCount() public {
+        // Bob gifts "giftname" to Alice
+        vm.startPrank(bob);
+        usdc.approve(address(ans), type(uint256).max);
+        ans.giftName("giftname", 3, alice);
+        vm.stopPrank();
+
+        assertEq(ans.nameCount(alice), 1);
+
+        // Fast-forward past expiry
+        skip(3 * MONTH + 1);
+        assertTrue(ans.isAvailable("giftname"), "Name should be available after expiry");
+
+        // Bob gifts the same expired name to Alice again
+        vm.startPrank(bob);
+        ans.giftName("giftname", 3, alice);
+        vm.stopPrank();
+
+        assertEq(ans.nameCount(alice), 1, "nameCount should remain 1 upon gifting own expired name back to recipient");
+    }
+
     function test_Register_ExpiryCalculation_3Mo() public {
         uint64 ts = uint64(block.timestamp);
         _registerAlice("abc", 3);
@@ -416,13 +477,13 @@ contract ArcNameServiceTest is Test {
     }
 
     function test_Register_RevertsAtNameCap() public {
+        _fillActiveNames(alice, "a");
+
+        assertEq(ans.getNamesByOwner(alice).length, 10, "Alice should have exactly 10 active names");
+
         vm.startPrank(alice);
-        usdc.approve(address(ans), type(uint256).max);
-        ans.register("abc", 3);
-        ans.register("abcd", 3);
-        ans.register("abcde", 3);
         vm.expectRevert(ArcNameService.MaxNamesReached.selector);
-        ans.register("abcdef", 3);
+        ans.register("capname11", 3);
         vm.stopPrank();
     }
 
@@ -497,13 +558,9 @@ contract ArcNameServiceTest is Test {
     }
 
     function test_GiftName_RevertsIfRecipientAtCap() public {
-        // Give bob 3 names first
-        vm.startPrank(bob);
-        usdc.approve(address(ans), type(uint256).max);
-        ans.register("bbb1", 3);
-        ans.register("bbb2", 3);
-        ans.register("bbb3", 3);
-        vm.stopPrank();
+        _fillActiveNames(bob, "b");
+
+        assertEq(ans.getNamesByOwner(bob).length, 10, "Bob should have exactly 10 active names");
 
         vm.startPrank(alice);
         usdc.approve(address(ans), type(uint256).max);
@@ -666,13 +723,9 @@ contract ArcNameServiceTest is Test {
     }
 
     function test_TransferName_RevertsIfRecipientAtCap() public {
-        // Bob registers 3 names first
-        vm.startPrank(bob);
-        usdc.approve(address(ans), type(uint256).max);
-        ans.register("bbb1", 3);
-        ans.register("bbb2", 3);
-        ans.register("bbb3", 3);
-        vm.stopPrank();
+        _fillActiveNames(bob, "c");
+
+        assertEq(ans.getNamesByOwner(bob).length, 10, "Bob should have exactly 10 active names");
 
         _registerAlice("tfer1", 3);
         vm.prank(alice);
@@ -923,13 +976,9 @@ contract ArcNameServiceTest is Test {
     }
 
     function test_BuyName_RevertsIfBuyerAtCap() public {
-        // Bob already has 3 names
-        vm.startPrank(bob);
-        usdc.approve(address(ans), type(uint256).max);
-        ans.register("bbb1", 3);
-        ans.register("bbb2", 3);
-        ans.register("bbb3", 3);
-        vm.stopPrank();
+        _fillActiveNames(bob, "d");
+
+        assertEq(ans.getNamesByOwner(bob).length, 10, "Bob should have exactly 10 active names");
 
         _setupSale("abc", 50e6);
 
@@ -1150,6 +1199,59 @@ contract ArcNameServiceTest is Test {
         assertGt(rec.expiry, uint64(block.timestamp));
     }
 
+    function test_SetPrimaryName_Success() public {
+        _registerAlice("abc", 3);
+        _registerAlice("def", 3);
+        assertEq(ans.primaryName(alice), "abc");
+        assertEq(ans.reverseLookup(alice), "abc");
+
+        vm.prank(alice);
+        vm.expectEmit(true, false, false, true, address(ans));
+        emit ArcNameService.PrimaryNameSet(alice, "def");
+        ans.setPrimaryName("def");
+
+        assertEq(ans.primaryName(alice), "def");
+        assertEq(ans.reverseLookup(alice), "def");
+    }
+
+    function test_SetPrimaryName_RevertsNotNameOwner() public {
+        _registerAlice("abc", 3);
+
+        vm.prank(bob);
+        vm.expectRevert(ArcNameService.NotNameOwner.selector);
+        ans.setPrimaryName("abc");
+    }
+
+    function test_SetPrimaryName_RevertsNameExpired() public {
+        _registerAlice("abc", 3);
+        vm.warp(block.timestamp + 90 days + 1);
+
+        vm.prank(alice);
+        vm.expectRevert(ArcNameService.NameExpired.selector);
+        ans.setPrimaryName("abc");
+    }
+
+    function test_ResetPrimaryName_Success() public {
+        _registerAlice("abc", 3);
+        assertEq(ans.primaryName(alice), "abc");
+
+        vm.prank(alice);
+        vm.expectEmit(true, false, false, false, address(ans));
+        emit ArcNameService.PrimaryNameReset(alice);
+        ans.resetPrimaryName();
+
+        assertEq(ans.primaryName(alice), "");
+        assertEq(ans.reverseLookup(alice), "");
+    }
+
+    function test_ReverseLookup_ExpiredName_ReturnsEmpty() public {
+        _registerAlice("abc", 3);
+        assertEq(ans.reverseLookup(alice), "abc");
+
+        vm.warp(block.timestamp + 90 days + 1);
+        assertEq(ans.reverseLookup(alice), "");
+    }
+
     // -----------------------------------------------------------------------
     // Fuzz: pricing function correctness across all valid length × duration combos
     // -----------------------------------------------------------------------
@@ -1248,7 +1350,7 @@ contract ArcNameServiceTest is Test {
 }
 
 // -----------------------------------------------------------------------
-// Invariant test: nameCount[address] never exceeds 3
+// Invariant test: active names per wallet never exceed MAX_ACTIVE_NAMES_PER_USER
 // -----------------------------------------------------------------------
 contract ArcNameServiceInvariantTest is Test {
     ArcNameService internal ans;
@@ -1272,12 +1374,15 @@ contract ArcNameServiceInvariantTest is Test {
         targetContract(address(handler));
     }
 
-    /// @notice nameCount must never exceed 3 for any actor after any sequence of operations.
-    /// The handler exposes a public actors(uint256) getter (dynamic array), so we enumerate by index.
-    function invariant_NameCountNeverExceedsThree() public view {
+    /// @notice Active names owned by any actor must never exceed MAX_ACTIVE_NAMES_PER_USER.
+    /// Also verifies that active names never exceed the conservative accounting counter nameCount.
+    function invariant_ActiveNamesNeverExceedCap() public view {
+        uint256 maxActive = ans.MAX_ACTIVE_NAMES_PER_USER();
         for (uint256 i = 0; i < 3; i++) {
             address actor = handler.actors(i);
-            assertLe(ans.nameCount(actor), 3, "nameCount exceeded 3 for actor");
+            uint256 activeCount = ans.getNamesByOwner(actor).length;
+            assertLe(activeCount, maxActive, "Active names exceeded cap for actor");
+            assertLe(activeCount, ans.nameCount(actor), "Active names exceed conservative nameCount");
         }
     }
 }

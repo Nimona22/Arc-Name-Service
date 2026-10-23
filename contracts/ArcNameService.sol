@@ -48,8 +48,9 @@ contract ArcNameService is ReentrancyGuard {
     address public owner;
 
     uint256 public constant PROTOCOL_FEE_BPS = 250;
+    uint256 public constant MAX_ACTIVE_NAMES_PER_USER = 10;
 
-    // owner => currently tracked owned names (max expected small, capped by policy at 3 active)
+    // owner => currently tracked owned names (max expected small, capped by policy at 10 active)
     mapping(address => string[]) private _ownedNames;
     // owner => name hash => index + 1 in _ownedNames[owner]
     mapping(address => mapping(bytes32 => uint256)) private _ownedNameIndexPlusOne;
@@ -95,6 +96,8 @@ contract ArcNameService is ReentrancyGuard {
     event TipSent(string toName, address indexed from, address indexed to, uint256 amount, string note);
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
     event AvatarSet(address indexed user, string url);
+    event PrimaryNameSet(address indexed user, string name);
+    event PrimaryNameReset(address indexed user);
 
     modifier onlyOwner() {
         if (msg.sender != owner) revert NotNameOwner();
@@ -114,7 +117,7 @@ contract ArcNameService is ReentrancyGuard {
 
         bytes32 h = keccak256(abi.encodePacked(name));
         if (!_isAvailableHash(h)) revert NameNotAvailable();
-        if (_activeCount(msg.sender) >= 3) revert MaxNamesReached();
+        if (_activeCount(msg.sender) >= MAX_ACTIVE_NAMES_PER_USER) revert MaxNamesReached();
 
         uint256 price = _priceByLengthAndDuration(bytes(name).length, durationMonths);
         IERC20(usdc).safeTransferFrom(msg.sender, address(this), price);
@@ -139,7 +142,9 @@ contract ArcNameService is ReentrancyGuard {
         delete listings[h];
 
         _addOwnedName(msg.sender, h, name);
-        nameCount[msg.sender] += 1;
+        if (previousOwner != msg.sender) {
+            nameCount[msg.sender] += 1;
+        }
 
         if (bytes(primaryName[msg.sender]).length == 0) {
             primaryName[msg.sender] = name;
@@ -159,7 +164,7 @@ contract ArcNameService is ReentrancyGuard {
 
         bytes32 h = keccak256(abi.encodePacked(name));
         if (!_isAvailableHash(h)) revert NameNotAvailable();
-        if (_activeCount(recipient) >= 3) revert MaxNamesReached();
+        if (_activeCount(recipient) >= MAX_ACTIVE_NAMES_PER_USER) revert MaxNamesReached();
 
         uint256 price = _priceByLengthAndDuration(bytes(name).length, durationMonths);
         IERC20(usdc).safeTransferFrom(msg.sender, address(this), price);
@@ -184,7 +189,9 @@ contract ArcNameService is ReentrancyGuard {
         delete listings[h];
 
         _addOwnedName(recipient, h, name);
-        nameCount[recipient] += 1;
+        if (previousOwner != recipient) {
+            nameCount[recipient] += 1;
+        }
 
         if (bytes(primaryName[recipient]).length == 0) {
             primaryName[recipient] = name;
@@ -227,7 +234,7 @@ contract ArcNameService is ReentrancyGuard {
         if (rec.owner != msg.sender) revert NotNameOwner();
         if (rec.expiry <= block.timestamp) revert NameExpired();
         if (rec.listed) revert NameIsListed();
-        if (_activeCount(to) >= 3) revert MaxNamesReached();
+        if (_activeCount(to) >= MAX_ACTIVE_NAMES_PER_USER) revert MaxNamesReached();
 
         rec.owner = to;
 
@@ -292,7 +299,7 @@ contract ArcNameService is ReentrancyGuard {
 
         if (!listing.active) revert ListingNotActive();
         if (rec.expiry <= block.timestamp) revert NameExpired();
-        if (_activeCount(msg.sender) >= 3) revert MaxNamesReached();
+        if (_activeCount(msg.sender) >= MAX_ACTIVE_NAMES_PER_USER) revert MaxNamesReached();
         if (listing.price == 0) revert ZeroPrice();
 
         address seller = listing.seller;
@@ -407,8 +414,31 @@ contract ArcNameService is ReentrancyGuard {
         return listings[h];
     }
 
+    function setPrimaryName(string calldata name) external {
+        _validateName(name);
+        bytes32 h = keccak256(abi.encodePacked(name));
+        NameRecord memory rec = names[h];
+        if (rec.owner != msg.sender) revert NotNameOwner();
+        if (rec.expiry <= block.timestamp) revert NameExpired();
+
+        primaryName[msg.sender] = name;
+        emit PrimaryNameSet(msg.sender, name);
+    }
+
+    function resetPrimaryName() external {
+        delete primaryName[msg.sender];
+        emit PrimaryNameReset(msg.sender);
+    }
+
     function reverseLookup(address user) external view returns (string memory) {
-        return primaryName[user];
+        string memory pName = primaryName[user];
+        if (bytes(pName).length == 0) return "";
+        bytes32 h = keccak256(abi.encodePacked(pName));
+        NameRecord memory rec = names[h];
+        if (rec.owner != user || rec.expiry <= block.timestamp) {
+            return "";
+        }
+        return pName;
     }
 
     function setAvatar(string calldata url) external {

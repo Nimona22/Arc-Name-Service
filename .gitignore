@@ -5,3 +5,23 @@ node_modules
 .env.*
 !.env.example
 .playwright-mcp
+# Local agent tools and skills
+.agent/
+.agents/
+
+# Local backup folders
+.backup_hero_animation/
+.backup_ux/
+
+# Generated contract build output
+contracts/out/
+contracts/cache/
+contracts/broadcast/
+.abi/
+.abi.lock
+
+# Local deployment output
+deployed_addresses.json
+
+# Local design screenshots
+artifacts/

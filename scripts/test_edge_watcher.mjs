@@ -12,7 +12,7 @@ const PASS = (msg) => console.log(`  ✓ ${msg}`);
 
 // ─── Edge Function Reference Constants & Logic ───────────────────────────────
 export const ARC_TESTNET_CHAIN_ID = 5042002;
-export const DEFAULT_ANS_ADDRESS = '0xa70e51df2472677219de4afa5124a47526e27033';
+export const DEFAULT_ANS_ADDRESS = '0x328b80405c05b84ba72a457fcfe389ad9c159fbb';
 export const CONFIRMATION_DEPTH = 3n;
 export const DEFAULT_MAX_BLOCKS_PER_INVOCATION = 200n;
 export const MAX_ALLOWED_BLOCKS_PER_INVOCATION = 500n;
@@ -439,7 +439,7 @@ console.log('\n--- PART 1: Constants & Contract Configuration ---');
 
 console.log('1. Verifying Arc Testnet chain ID and contract defaults...');
 assert.equal(ARC_TESTNET_CHAIN_ID, 5042002, 'Chain ID must be Arc Testnet 5042002');
-assert.equal(DEFAULT_ANS_ADDRESS.toLowerCase(), '0xa70e51df2472677219de4afa5124a47526e27033');
+assert.equal(DEFAULT_ANS_ADDRESS.toLowerCase(), '0x328b80405c05b84ba72a457fcfe389ad9c159fbb');
 assert.equal(CONFIRMATION_DEPTH, 3n, 'Confirmation depth must be 3 blocks');
 assert.equal(DEFAULT_MAX_BLOCKS_PER_INVOCATION, 200n, 'Default bounded chunk must be 200 blocks');
 assert.equal(MAX_ALLOWED_BLOCKS_PER_INVOCATION, 500n, 'Maximum allowed chunk must be 500 blocks');
@@ -738,7 +738,7 @@ const mockRpcWithLogs = {
   getBlockNumber: async () => 550n + CONFIRMATION_DEPTH,
   getLogs: async () => [
     {
-      address: '0xa70e51df2472677219de4afa5124a47526e27033',
+      address: '0x328b80405c05b84ba72a457fcfe389ad9c159fbb',
       transactionHash: '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
       logIndex: 0,
       topics: soldTopics,
@@ -808,7 +808,7 @@ const mockRpcWithNewLogs = {
   getBlockNumber: async () => 600n + CONFIRMATION_DEPTH,
   getLogs: async () => [
     {
-      address: '0xa70e51df2472677219de4afa5124a47526e27033',
+      address: '0x328b80405c05b84ba72a457fcfe389ad9c159fbb',
       transactionHash: '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
       logIndex: 0,
       topics: soldTopics,

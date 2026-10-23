@@ -536,6 +536,53 @@ export function useANS(credential: P256Credential | null) {
     [ensureAccount]
   )
 
+  const setPrimaryName = useCallback(
+    async (name: string): Promise<string> => {
+      const { account, bundler } = await ensureAccount()
+      const clean = cleanName(name)
+
+      const setData = encodeFunctionData({
+        abi: ANS_ABI,
+        functionName: 'setPrimaryName',
+        args: [clean],
+      })
+
+      const userOpHash = await bundler.sendUserOperation({
+        account,
+        calls: [{ to: ANS_ADDRESS, data: setData, value: 0n }],
+        paymaster: true,
+      })
+
+      const receipt = await bundler.waitForUserOperationReceipt({ hash: userOpHash })
+      const txHash = (receipt as any).receipt?.transactionHash || receipt.userOpHash
+      return txHash
+    },
+    [ensureAccount]
+  )
+
+  const resetPrimaryName = useCallback(
+    async (): Promise<string> => {
+      const { account, bundler } = await ensureAccount()
+
+      const resetData = encodeFunctionData({
+        abi: ANS_ABI,
+        functionName: 'resetPrimaryName',
+        args: [],
+      })
+
+      const userOpHash = await bundler.sendUserOperation({
+        account,
+        calls: [{ to: ANS_ADDRESS, data: resetData, value: 0n }],
+        paymaster: true,
+      })
+
+      const receipt = await bundler.waitForUserOperationReceipt({ hash: userOpHash })
+      const txHash = (receipt as any).receipt?.transactionHash || receipt.userOpHash
+      return txHash
+    },
+    [ensureAccount]
+  )
+
   return {
     register,
     giftName,
@@ -546,6 +593,8 @@ export function useANS(credential: P256Credential | null) {
     buyName,
     sendTip,
     setAvatar,
+    setPrimaryName,
+    resetPrimaryName,
   }
 }
 

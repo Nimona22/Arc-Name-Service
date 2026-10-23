@@ -10,8 +10,8 @@ Here's what I can confirm from this session without needing Build mode:
 
 | Contract | Address | Tx Hash | Deployed At |
 |---|---|---|---|
-| `ANSReputation` | `0x8a80287eb12d7bc38e52ed2ef59b0fb3de49f8ad` | `0xf4620...b828` | 2026-10-08T01:16:53Z |
-| `ArcNameService` | `0xa70e51df2472677219de4afa5124a47526e27033` | `0x04672...fcb6` | 2026-10-08T01:17:09Z |
+| `ANSReputation` | `0x988772c3e0133f49f4136305c35f378a26a2a264` | `0xf4620...b828` | 2026-10-08T01:16:53Z |
+| `ArcNameService` | `0x328b80405c05b84ba72a457fcfe389ad9c159fbb` | `0x04672...fcb6` | 2026-10-08T01:17:09Z |
 
 Owner of both confirmed as `0x315EED96725dFbdDeFcdF35673634CD1eCEB9433` via on-chain read.
 
@@ -20,7 +20,7 @@ Owner of both confirmed as `0x315EED96725dFbdDeFcdF35673634CD1eCEB9433` via on-c
 ```bash
 curl -s -X POST https://rpc.testnet.arc.io \
   -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","method":"eth_getCode","params":["0xa70e51df2472677219de4afa5124a47526e27033","latest"],"id":1}'
+  -d '{"jsonrpc":"2.0","method":"eth_getCode","params":["0x328b80405c05b84ba72a457fcfe389ad9c159fbb","latest"],"id":1}'
 ```
 
 If it returns anything other than `"0x"` — the contract is deployed. `"0x"` means empty address.

@@ -384,3 +384,50 @@ CREATE POLICY "Disallow public access to watcher_cursors"
   WITH CHECK (false);
 
 REVOKE ALL ON watcher_cursors FROM public, anon, authenticated;
+
+-- ============================================================================
+-- 9. Marketplace Listings Table
+-- Real-time on-chain index for active and sold marketplace domains.
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS marketplace_listings (
+  name         text PRIMARY KEY,
+  seller       text NOT NULL,
+  price        numeric NOT NULL,
+  is_active    boolean NOT NULL DEFAULT true,
+  buyer        text,
+  listed_at    timestamptz NOT NULL DEFAULT now(),
+  sold_at      timestamptz,
+  last_tx_hash text,
+  created_at   timestamptz NOT NULL DEFAULT now(),
+  updated_at   timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_marketplace_active ON marketplace_listings (is_active, price ASC);
+CREATE INDEX IF NOT EXISTS idx_marketplace_seller ON marketplace_listings (seller) WHERE is_active = true;
+CREATE INDEX IF NOT EXISTS idx_marketplace_sold_at ON marketplace_listings (sold_at DESC) WHERE is_active = false;
+
+ALTER TABLE marketplace_listings ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow public read of marketplace_listings" ON marketplace_listings;
+CREATE POLICY "Allow public read of marketplace_listings" ON marketplace_listings FOR SELECT TO public USING (true);
+
+DROP POLICY IF EXISTS "Allow public insert of marketplace_listings" ON marketplace_listings;
+CREATE POLICY "Allow public insert of marketplace_listings" ON marketplace_listings FOR INSERT TO public WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Allow public update of marketplace_listings" ON marketplace_listings;
+CREATE POLICY "Allow public update of marketplace_listings" ON marketplace_listings FOR UPDATE TO public USING (true) WITH CHECK (true);
+
+GRANT ALL ON marketplace_listings TO anon, authenticated;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' 
+      AND schemaname = 'public' 
+      AND tablename = 'marketplace_listings'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE marketplace_listings;
+  END IF;
+END $$;
+

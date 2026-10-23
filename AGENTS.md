@@ -8,20 +8,20 @@ This is the **project memory** - what Arc Studio remembers about building this a
 
 ## What This App Does
 
-A decentralized name service for the Arc blockchain. Users register `.arc` names (3/6/9/12 months), send USDC tips by name, gift names to others, and buy/sell names through an atomic-escrow marketplace. Reputation scores track each user's history. Max 3 active names per wallet.
+A decentralized name service for the Arc blockchain. Users register `.arc` names (3/6/9/12 months), send USDC tips by name, gift names to others, and buy/sell names through an atomic-escrow marketplace. Reputation scores track each user's history. Max 10 active names per wallet.
 
 ## Deployed Contracts (Arc Testnet)
 
 | Contract | Address | Explorer |
 |---|---|---|
-| `ANSReputation` | `0x8a80287eb12d7bc38e52ed2ef59b0fb3de49f8ad` | [View](https://explorer.testnet.arc.io/address/0x8a80287eb12d7bc38e52ed2ef59b0fb3de49f8ad) |
-| `ArcNameService` | `0xa70e51df2472677219de4afa5124a47526e27033` | [View](https://explorer.testnet.arc.io/address/0xa70e51df2472677219de4afa5124a47526e27033) |
+| `ANSReputation` | `0x988772c3e0133f49f4136305c35f378a26a2a264` | [View](https://explorer.testnet.arc.io/address/0x988772c3e0133f49f4136305c35f378a26a2a264) |
+| `ArcNameService` | `0x328b80405c05b84ba72a457fcfe389ad9c159fbb` | [View](https://explorer.testnet.arc.io/address/0x328b80405c05b84ba72a457fcfe389ad9c159fbb) |
 
 **Owner:** `0x315EED96725dFbdDeFcdF35673634CD1eCEB9433`
 **USDC:** `0x3600000000000000000000000000000000000000` (Arc Testnet)
 
-### IMPORTANT: Post-deploy wiring required
-After deploying, call `ANSReputation.setAnsContract(0xa70e51df2472677219de4afa5124a47526e27033)` from the owner wallet `0x315EED96725dFbdDeFcdF35673634CD1eCEB9433` to authorize ArcNameService to write reputation scores. This is a one-time call. Without it, register/gift/buy/tip will revert.
+### Post-deploy wiring status
+`ANSReputation.setAnsContract(0x328b80405c05b84ba72a457fcfe389ad9c159fbb)` was successfully executed on-chain from the owner wallet. ArcNameService is fully authorized to write reputation scores.
 
 ## Tech Stack
 

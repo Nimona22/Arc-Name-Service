@@ -52,6 +52,21 @@ function notifyProfileChange(profile: UserProfile) {
   });
 }
 
+export const SEED_PROFILES: Record<string, Partial<UserProfile>> = {
+  '0x5b16cccb2a13fd2c5fec3321f0cfa98bccbbda7d': {
+    displayName: 'Nimox',
+    bio: 'No giving up',
+    twitter: 'nimox219',
+  },
+  '0x815289d5c67e533d008fd38c51b1159cfa9bda0c': {
+    displayName: 'Maler',
+  },
+  '0x038131835ab380e5af11b7d844a46645c977ecc0': {
+    displayName: 'Olmo',
+    bio: 'Just random guy',
+  },
+};
+
 /**
  * Loads a profile synchronously from cache or localStorage
  */
@@ -63,11 +78,13 @@ export const loadProfile = (address: string): UserProfile => {
     return profileMemoryCache.get(key)!;
   }
 
+  const seed = SEED_PROFILES[key];
+
   try {
     const raw = localStorage.getItem(`ans_profile_${key}`) || localStorage.getItem(`ans_profile_${address}`);
     if (raw) {
       const parsed = JSON.parse(raw) as UserProfile;
-      const normalized: UserProfile = { ...parsed, address };
+      const normalized: UserProfile = { ...seed, ...parsed, address };
       profileMemoryCache.set(key, normalized);
       return normalized;
     }
@@ -75,7 +92,7 @@ export const loadProfile = (address: string): UserProfile => {
     console.warn('Failed to parse cached profile for', address, err);
   }
 
-  const fallback: UserProfile = { address };
+  const fallback: UserProfile = seed ? { ...seed, address } : { address };
   profileMemoryCache.set(key, fallback);
   return fallback;
 };

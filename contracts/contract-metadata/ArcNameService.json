@@ -1,17 +1,17 @@
 {
-  "contractAddress": "0xa70e51df2472677219de4afa5124a47526e27033",
+  "contractAddress": "0x328b80405c05b84ba72a457fcfe389ad9c159fbb",
   "network": "ARC-TESTNET",
   "deployerWalletId": "3c2464b2-8369-52e2-a782-800bbeca5396",
   "contract_code_path": "/home/user/app/contracts/ArcNameService.sol",
   "contract_compiled_code_path": "/home/user/app/contracts/out/ArcNameService.sol/ArcNameService.json",
   "contract_network_and_links": {
-    "Arc Testnet": "https://explorer.testnet.arc.io/address/0xa70e51df2472677219de4afa5124a47526e27033"
+    "Arc Testnet": "https://explorer.testnet.arc.io/address/0x328b80405c05b84ba72a457fcfe389ad9c159fbb"
   },
   "contract_deployments": [
     {
       "chain": "Arc Testnet",
-      "address": "0xa70e51df2472677219de4afa5124a47526e27033",
-      "explorerUrl": "https://explorer.testnet.arc.io/address/0xa70e51df2472677219de4afa5124a47526e27033",
+      "address": "0x328b80405c05b84ba72a457fcfe389ad9c159fbb",
+      "explorerUrl": "https://explorer.testnet.arc.io/address/0x328b80405c05b84ba72a457fcfe389ad9c159fbb",
       "txHash": "0x04672649ec2a6722aaa8b75cba5cca47f7e34ff4e621df97eee1a6d3f068fcb6",
       "deployedAt": "2026-10-08T01:17:09.056Z"
     }

@@ -21,7 +21,7 @@ import { createPublicClient, http, parseAbiItem, decodeEventLog } from 'https://
 // -- Configuration & Constants ------------------------------------------------
 
 export const ARC_TESTNET_CHAIN_ID = 5042002;
-export const DEFAULT_ANS_ADDRESS = '0xa70e51df2472677219de4afa5124a47526e27033';
+export const DEFAULT_ANS_ADDRESS = '0x328b80405c05b84ba72a457fcfe389ad9c159fbb';
 export const CONFIRMATION_DEPTH = 3n;
 export const DEFAULT_MAX_BLOCKS_PER_INVOCATION = 200n;
 export const MAX_ALLOWED_BLOCKS_PER_INVOCATION = 500n;
@@ -46,6 +46,15 @@ export const NAME_SOLD_EVENT = parseAbiItem(
 );
 export const TIP_SENT_EVENT = parseAbiItem(
   'event TipSent(string toName, address indexed from, address indexed to, uint256 amount, string note)'
+);
+export const NAME_GIFTED_EVENT = parseAbiItem(
+  'event NameGifted(string name, address indexed gifter, address indexed recipient, uint64 expiry)'
+);
+export const NAME_LISTED_EVENT = parseAbiItem(
+  'event NameListed(string name, address indexed seller, uint256 price)'
+);
+export const NAME_LISTING_CANCELLED_EVENT = parseAbiItem(
+  'event NameListingCancelled(string name)'
 );
 
 // -- Timing-Safe Secret Verification ------------------------------------------
@@ -195,6 +204,7 @@ export function buildNameSoldNotifications(args: any, txHash: string, logIndex: 
     return [];
   }
 
+  const clean = String(name).trim().toLowerCase().replace(/\.arc$/, '');
   const priceUsdc = (Number(priceBigInt) / 1_000_000).toFixed(2);
   const safeLogIndex = typeof logIndex === 'number' ? logIndex : Number(logIndex || 0);
   const dedupBase = { tx_hash: txHash, log_index: safeLogIndex };
@@ -204,8 +214,8 @@ export function buildNameSoldNotifications(args: any, txHash: string, logIndex: 
       ...dedupBase,
       recipient_address: (seller as string).toLowerCase(),
       kind: 'name_sold',
-      title: `${name}.arc sold for ${priceUsdc} USDC`,
-      body: `Your name ${name}.arc was purchased by ${(buyer as string).slice(0, 6)}...${(buyer as string).slice(-4)}.`,
+      title: `${clean}.arc sold for ${priceUsdc} USDC`,
+      body: `Your name ${clean}.arc was purchased by ${(buyer as string).slice(0, 6)}...${(buyer as string).slice(-4)}.`,
       link: `userprofile:${(buyer as string).toLowerCase()}`,
       is_read: false,
     },
@@ -213,9 +223,9 @@ export function buildNameSoldNotifications(args: any, txHash: string, logIndex: 
       ...dedupBase,
       recipient_address: (buyer as string).toLowerCase(),
       kind: 'name_bought',
-      title: `You acquired ${name}.arc`,
-      body: `You successfully purchased ${name}.arc for ${priceUsdc} USDC.`,
-      link: `profile:${name}.arc`,
+      title: `You acquired ${clean}.arc`,
+      body: `You successfully purchased ${clean}.arc for ${priceUsdc} USDC.`,
+      link: `profile:${clean}.arc`,
       is_read: false,
     },
   ];
@@ -237,6 +247,7 @@ export function buildTipSentNotifications(args: any, txHash: string, logIndex: n
     return [];
   }
 
+  const cleanToName = String(toName).trim().toLowerCase().replace(/\.arc$/, '');
   const amountUsdc = (Number(amountBigInt) / 1_000_000).toFixed(2);
   const safeLogIndex = typeof logIndex === 'number' ? logIndex : Number(logIndex || 0);
   const trimmedNote = typeof note === 'string' ? note.trim() : '';
@@ -248,7 +259,7 @@ export function buildTipSentNotifications(args: any, txHash: string, logIndex: n
       log_index: safeLogIndex,
       recipient_address: (to as string).toLowerCase(),
       kind: 'tip_received',
-      title: `You received a ${amountUsdc} USDC tip on ${toName}.arc`,
+      title: `You received a ${amountUsdc} USDC tip on ${cleanToName}.arc`,
       body: `${(from as string).slice(0, 6)}...${(from as string).slice(-4)} sent you ${amountUsdc} USDC.${noteSuffix}`,
       link: `userprofile:${(from as string).toLowerCase()}`,
       is_read: false,
@@ -258,9 +269,43 @@ export function buildTipSentNotifications(args: any, txHash: string, logIndex: n
       log_index: safeLogIndex,
       recipient_address: (from as string).toLowerCase(),
       kind: 'tip_sent',
-      title: `You sent a ${amountUsdc} USDC tip on ${toName}.arc`,
+      title: `You sent a ${amountUsdc} USDC tip on ${cleanToName}.arc`,
       body: `Tip successfully sent to ${(to as string).slice(0, 6)}...${(to as string).slice(-4)}.${noteSuffix}`,
-      link: `profile:${toName}.arc`,
+      link: `profile:${cleanToName}.arc`,
+      is_read: false,
+    },
+  ];
+}
+
+export function buildNameGiftedNotifications(args: any, txHash: string, logIndex: number) {
+  if (!args || typeof args !== 'object') return [];
+  const { name, gifter, recipient } = args;
+
+  if (!isValidName(name) || !isAddress(gifter) || !isAddress(recipient)) {
+    return [];
+  }
+
+  const clean = String(name).trim().toLowerCase().replace(/\.arc$/, '');
+  const safeLogIndex = typeof logIndex === 'number' ? logIndex : Number(logIndex || 0);
+  const dedupBase = { tx_hash: txHash, log_index: safeLogIndex };
+
+  return [
+    {
+      ...dedupBase,
+      recipient_address: (recipient as string).toLowerCase(),
+      kind: 'name_gift_received',
+      title: `You received a gift: ${clean}.arc!`,
+      body: `${(gifter as string).slice(0, 6)}...${(gifter as string).slice(-4)} gifted you the name ${clean}.arc.`,
+      link: `profile:${clean}.arc`,
+      is_read: false,
+    },
+    {
+      ...dedupBase,
+      recipient_address: (gifter as string).toLowerCase(),
+      kind: 'name_gift_sent',
+      title: `You gifted ${clean}.arc`,
+      body: `You successfully gifted ${clean}.arc to ${(recipient as string).slice(0, 6)}...${(recipient as string).slice(-4)}.`,
+      link: `profile:${clean}.arc`,
       is_read: false,
     },
   ];
@@ -363,12 +408,15 @@ export async function pollChunk({
 
   const soldLogs: any[] = [];
   const tipLogs: any[] = [];
+  const giftedLogs: any[] = [];
+  const listedLogs: any[] = [];
+  const cancelledLogs: any[] = [];
 
   try {
     if (ansAddress === tippingAddress) {
       const rawLogs = await rpcClient.getLogs({
         address: ansAddress,
-        events: [NAME_SOLD_EVENT, TIP_SENT_EVENT],
+        events: [NAME_SOLD_EVENT, TIP_SENT_EVENT, NAME_GIFTED_EVENT, NAME_LISTED_EVENT, NAME_LISTING_CANCELLED_EVENT],
         fromBlock,
         toBlock,
       });
@@ -377,18 +425,21 @@ export async function pollChunk({
         if (log.address.toLowerCase() !== ansAddress) continue;
         try {
           const decoded = decodeEventLog({
-            abi: [NAME_SOLD_EVENT, TIP_SENT_EVENT],
+            abi: [NAME_SOLD_EVENT, TIP_SENT_EVENT, NAME_GIFTED_EVENT, NAME_LISTED_EVENT, NAME_LISTING_CANCELLED_EVENT],
             data: log.data,
             topics: log.topics,
           });
           if (decoded.eventName === 'NameSold') soldLogs.push({ ...log, decoded });
           else if (decoded.eventName === 'TipSent') tipLogs.push({ ...log, decoded });
+          else if (decoded.eventName === 'NameGifted') giftedLogs.push({ ...log, decoded });
+          else if (decoded.eventName === 'NameListed') listedLogs.push({ ...log, decoded });
+          else if (decoded.eventName === 'NameListingCancelled') cancelledLogs.push({ ...log, decoded });
         } catch {
           // Skip corrupt or unparseable log without failing entire batch
         }
       }
     } else {
-      const [rawSold, rawTip] = await Promise.all([
+      const [rawSold, rawTip, rawListed, rawCancelled] = await Promise.all([
         rpcClient.getLogs({
           address: ansAddress,
           events: [NAME_SOLD_EVENT],
@@ -398,6 +449,18 @@ export async function pollChunk({
         rpcClient.getLogs({
           address: tippingAddress,
           events: [TIP_SENT_EVENT],
+          fromBlock,
+          toBlock,
+        }),
+        rpcClient.getLogs({
+          address: ansAddress,
+          events: [NAME_LISTED_EVENT],
+          fromBlock,
+          toBlock,
+        }),
+        rpcClient.getLogs({
+          address: ansAddress,
+          events: [NAME_LISTING_CANCELLED_EVENT],
           fromBlock,
           toBlock,
         }),
@@ -424,6 +487,30 @@ export async function pollChunk({
             topics: log.topics,
           });
           if (decoded.eventName === 'TipSent') tipLogs.push({ ...log, decoded });
+        } catch {}
+      }
+
+      for (const log of rawListed) {
+        if (log.address.toLowerCase() !== ansAddress) continue;
+        try {
+          const decoded = decodeEventLog({
+            abi: [NAME_LISTED_EVENT],
+            data: log.data,
+            topics: log.topics,
+          });
+          if (decoded.eventName === 'NameListed') listedLogs.push({ ...log, decoded });
+        } catch {}
+      }
+
+      for (const log of rawCancelled) {
+        if (log.address.toLowerCase() !== ansAddress) continue;
+        try {
+          const decoded = decodeEventLog({
+            abi: [NAME_LISTING_CANCELLED_EVENT],
+            data: log.data,
+            topics: log.topics,
+          });
+          if (decoded.eventName === 'NameListingCancelled') cancelledLogs.push({ ...log, decoded });
         } catch {}
       }
     }
@@ -460,6 +547,16 @@ export async function pollChunk({
     toInsert.push(...notifs);
   }
 
+  for (const item of giftedLogs) {
+    if (!item.transactionHash) continue;
+    const notifs = buildNameGiftedNotifications(
+      item.decoded.args,
+      item.transactionHash,
+      item.logIndex ?? 0
+    );
+    toInsert.push(...notifs);
+  }
+
   if (toInsert.length > 0) {
     const { error: insertErr } = await dbClient
       .from('notifications')
@@ -478,6 +575,61 @@ export async function pollChunk({
         toBlock: toBlock.toString(),
       };
     }
+  }
+
+  // Synchronize marketplace listings state
+  try {
+    const mlTable = dbClient?.from?.('marketplace_listings');
+    if (mlTable && typeof mlTable.upsert === 'function') {
+      const mlRows: any[] = [];
+      for (const item of listedLogs) {
+        const args = item.decoded?.args;
+        if (!args) continue;
+        const rawName = String(args.name || '').trim().toLowerCase();
+        const name = rawName.endsWith('.arc') ? rawName : `${rawName}.arc`;
+        mlRows.push({
+          name,
+          seller: String(args.seller || '').toLowerCase(),
+          price: Number(args.price) / 1e6,
+          is_active: true,
+          last_tx_hash: item.transactionHash,
+          updated_at: new Date().toISOString(),
+        });
+      }
+      for (const item of soldLogs) {
+        const args = item.decoded?.args;
+        if (!args) continue;
+        const rawName = String(args.name || '').trim().toLowerCase();
+        const name = rawName.endsWith('.arc') ? rawName : `${rawName}.arc`;
+        mlRows.push({
+          name,
+          seller: String(args.seller || '').toLowerCase(),
+          buyer: String(args.buyer || '').toLowerCase(),
+          price: Number(args.price) / 1e6,
+          is_active: false,
+          sold_at: new Date().toISOString(),
+          last_tx_hash: item.transactionHash,
+          updated_at: new Date().toISOString(),
+        });
+      }
+      for (const item of cancelledLogs) {
+        const args = item.decoded?.args;
+        if (!args) continue;
+        const rawName = String(args.name || '').trim().toLowerCase();
+        const name = rawName.endsWith('.arc') ? rawName : `${rawName}.arc`;
+        mlRows.push({
+          name,
+          is_active: false,
+          last_tx_hash: item.transactionHash,
+          updated_at: new Date().toISOString(),
+        });
+      }
+      if (mlRows.length > 0) {
+        await mlTable.upsert(mlRows, { onConflict: 'name' });
+      }
+    }
+  } catch {
+    // Graceful fallback if mock DB doesn't support marketplace_listings or table uninitialized
   }
 
   // Only advance cursor after successful event persistence

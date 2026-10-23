@@ -52,13 +52,13 @@ contract DeployANS is Script {
         //    manually from the owner wallet after deployment.
         if (deployer == OWNER) {
             reputation.setAnsContract(address(ans));
-            console.log("setAnsContract() called — contracts are wired!");
+            console.log("setAnsContract() called - contracts are wired!");
         } else {
             console.log("WARNING: Deployer is not OWNER.");
             console.log("You must call setAnsContract() manually from the owner wallet:");
-            console.log("  cast send", address(reputation),
-                "\"setAnsContract(address)\"", address(ans),
-                "--rpc-url https://rpc.testnet.arc.io --private-key <OWNER_KEY>");
+            console.log("  cast send", address(reputation));
+            console.log("    \"setAnsContract(address)\"", address(ans));
+            console.log("    --rpc-url https://rpc.testnet.arc.io --private-key <OWNER_KEY>");
         }
 
         vm.stopBroadcast();

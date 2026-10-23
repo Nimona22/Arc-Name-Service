@@ -33,7 +33,7 @@ console.log('\n--- PART 1: Contract Configuration & Event ABIs ---');
 console.log('1. Verifying default contract addresses match project deployment...');
 assert.equal(
   DEFAULT_ANS_ADDRESS.toLowerCase(),
-  '0xa70e51df2472677219de4afa5124a47526e27033',
+  '0x328b80405c05b84ba72a457fcfe389ad9c159fbb',
   'Default ANS address must match verified ArcNameService on Arc Testnet'
 );
 assert.equal(
@@ -53,8 +53,8 @@ console.log('  ✓ Event ABI definitions for NameSold and TipSent verified.');
 console.log('\n--- PART 2: Argument Validation ---');
 
 console.log('3. Validating isAddress helper...');
-assert.equal(isAddress('0xa70e51df2472677219de4afa5124a47526e27033'), true);
-assert.equal(isAddress('0xA70E51DF2472677219DE4AFA5124A47526E27033'), true);
+assert.equal(isAddress('0x328b80405c05b84ba72a457fcfe389ad9c159fbb'), true);
+assert.equal(isAddress('0x328B80405C05B84BA72A457FCFE389AD9C159FBB'), true);
 assert.equal(isAddress('0xa70e51df2472677219de4afa5124a47526e2703'), false); // 39 chars
 assert.equal(isAddress('not_an_address'), false);
 assert.equal(isAddress(null), false);
@@ -293,8 +293,8 @@ const mockRpcUpToDate = {
 const resUpToDate = await poll({
   rpcClient: mockRpcUpToDate,
   dbClient: mockDbClient,
-  ansAddress: '0xa70e51df2472677219de4afa5124a47526e27033',
-  tippingAddress: '0xa70e51df2472677219de4afa5124a47526e27033',
+  ansAddress: '0x328b80405c05b84ba72a457fcfe389ad9c159fbb',
+  tippingAddress: '0x328b80405c05b84ba72a457fcfe389ad9c159fbb',
 });
 assert.equal(resUpToDate.success, true);
 assert.equal(resUpToDate.upToDate, true);
@@ -336,14 +336,14 @@ const mockRpcWithEvents = {
   getBlockNumber: async () => 605n + CONFIRMATION_DEPTH, // safeLatest = 605n
   getLogs: async () => [
     {
-      address: '0xa70e51df2472677219de4afa5124a47526e27033',
+      address: '0x328b80405c05b84ba72a457fcfe389ad9c159fbb',
       transactionHash: '0x1111111111111111111111111111111111111111111111111111111111111111',
       logIndex: 0,
       topics: soldTopics,
       data: soldData,
     },
     {
-      address: '0xa70e51df2472677219de4afa5124a47526e27033',
+      address: '0x328b80405c05b84ba72a457fcfe389ad9c159fbb',
       transactionHash: '0x2222222222222222222222222222222222222222222222222222222222222222',
       logIndex: 1,
       topics: tipTopics,
@@ -355,8 +355,8 @@ const mockRpcWithEvents = {
 const resWithEvents = await poll({
   rpcClient: mockRpcWithEvents,
   dbClient: mockDbClient,
-  ansAddress: '0xa70e51df2472677219de4afa5124a47526e27033',
-  tippingAddress: '0xa70e51df2472677219de4afa5124a47526e27033',
+  ansAddress: '0x328b80405c05b84ba72a457fcfe389ad9c159fbb',
+  tippingAddress: '0x328b80405c05b84ba72a457fcfe389ad9c159fbb',
 });
 
 assert.equal(resWithEvents.success, true);
@@ -396,7 +396,7 @@ const mockRpcFailingDb = {
   getBlockNumber: async () => 610n + CONFIRMATION_DEPTH,
   getLogs: async () => [
     {
-      address: '0xa70e51df2472677219de4afa5124a47526e27033',
+      address: '0x328b80405c05b84ba72a457fcfe389ad9c159fbb',
       transactionHash: '0x3333333333333333333333333333333333333333333333333333333333333333',
       logIndex: 0,
       topics: soldTopics,
@@ -408,8 +408,8 @@ const mockRpcFailingDb = {
 const resFailingDb = await poll({
   rpcClient: mockRpcFailingDb,
   dbClient: mockDbFailing,
-  ansAddress: '0xa70e51df2472677219de4afa5124a47526e27033',
-  tippingAddress: '0xa70e51df2472677219de4afa5124a47526e27033',
+  ansAddress: '0x328b80405c05b84ba72a457fcfe389ad9c159fbb',
+  tippingAddress: '0x328b80405c05b84ba72a457fcfe389ad9c159fbb',
 });
 
 assert.equal(resFailingDb.success, false);

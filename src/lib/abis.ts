@@ -1,5 +1,5 @@
-export const ANS_ADDRESS = '0xa70e51df2472677219de4afa5124a47526e27033' as const
-export const REPUTATION_ADDRESS = '0x8a80287eb12d7bc38e52ed2ef59b0fb3de49f8ad' as const
+export const ANS_ADDRESS = '0x328b80405c05b84ba72a457fcfe389ad9c159fbb' as const
+export const REPUTATION_ADDRESS = '0x988772c3e0133f49f4136305c35f378a26a2a264' as const
 export const USDC_ADDRESS = '0x3600000000000000000000000000000000000000' as const
 export const ARC_TESTNET_CHAIN_ID = 5042002
 
@@ -11,6 +11,9 @@ export const ANS_ABI = [
   { type: 'function', name: 'getNamesByOwner', inputs: [{ name: 'user', type: 'address' }], outputs: [{ type: 'string[]' }], stateMutability: 'view' },
   { type: 'function', name: 'resolve', inputs: [{ name: 'name', type: 'string' }], outputs: [{ type: 'address' }], stateMutability: 'view' },
   { type: 'function', name: 'reverseLookup', inputs: [{ name: 'user', type: 'address' }], outputs: [{ type: 'string' }], stateMutability: 'view' },
+  { type: 'function', name: 'primaryName', inputs: [{ name: 'user', type: 'address' }], outputs: [{ type: 'string' }], stateMutability: 'view' },
+  { type: 'function', name: 'setPrimaryName', inputs: [{ name: 'name', type: 'string' }], outputs: [], stateMutability: 'nonpayable' },
+  { type: 'function', name: 'resetPrimaryName', inputs: [], outputs: [], stateMutability: 'nonpayable' },
   { type: 'function', name: 'avatars', inputs: [{ name: 'user', type: 'address' }], outputs: [{ type: 'string' }], stateMutability: 'view' },
   { type: 'function', name: 'setAvatar', inputs: [{ name: 'url', type: 'string' }], outputs: [], stateMutability: 'nonpayable' },
   { type: 'function', name: 'register', inputs: [{ name: 'name', type: 'string' }, { name: 'durationMonths', type: 'uint8' }], outputs: [], stateMutability: 'nonpayable' },

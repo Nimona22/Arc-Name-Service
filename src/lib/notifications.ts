@@ -37,19 +37,25 @@
  */
 
 import { useState, useCallback, useEffect } from 'react';
+import { decodeAbiParameters } from 'viem';
 import { toast } from 'sonner';
 import { supabaseUrl, isSupabaseConfigured } from './supabase';
+import { ANS_ADDRESS } from './abis';
+import { cleanName } from '../hooks/useANS';
+import { getCachedReverseName } from './reverseResolver';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export type NotificationKind =
-  | 'name_sold'      // Your name was sold to a buyer
-  | 'name_bought'    // You purchased a name
-  | 'name_expiring'  // A name you own is expiring soon
-  | 'tip_received'   // You received a USDC tip
-  | 'tip_sent'       // You sent a USDC tip
-  | 'tx_success'     // Transaction succeeded
-  | 'tx_failed';     // Transaction failed
+  | 'name_sold'          // Your name was sold to a buyer
+  | 'name_bought'        // You purchased a name
+  | 'name_gift_received' // You received a gifted name
+  | 'name_gift_sent'     // You gifted a name
+  | 'name_expiring'      // A name you own is expiring soon
+  | 'tip_received'       // You received a USDC tip
+  | 'tip_sent'           // You sent a USDC tip
+  | 'tx_success'         // Transaction succeeded
+  | 'tx_failed';         // Transaction failed
 
 export interface ANSNotification {
   id: string;
@@ -345,49 +351,443 @@ function mergeWithClientNotifications(
   clientNotifs: ANSNotification[]
 ): ANSNotification[] {
   const map = new Map<string, ANSNotification>();
-  for (const c of clientNotifs) {
-    map.set(c.id, c);
-  }
+  const txHashes = new Set<string>();
+
   for (const s of serverNotifs) {
     map.set(s.id, s);
+    if (s.tx_hash) {
+      txHashes.add(s.tx_hash.toLowerCase());
+    }
   }
+
+  for (const c of clientNotifs) {
+    if (c.tx_hash && txHashes.has(c.tx_hash.toLowerCase())) {
+      continue;
+    }
+    if (!map.has(c.id)) {
+      map.set(c.id, c);
+    }
+  }
+
   return Array.from(map.values()).sort(
     (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   );
 }
 
-// In-memory session cache so opening the bell does not prompt for passkey PIN every time
+function getReadIds(normAddr: string): Set<string> {
+  if (!normAddr || typeof window === 'undefined') return new Set();
+  try {
+    const raw = localStorage.getItem(`ans_read_notifs_${normAddr}`);
+    return raw ? new Set(JSON.parse(raw)) : new Set();
+  } catch {
+    return new Set();
+  }
+}
+
+function persistReadId(normAddr: string, id: string): void {
+  if (!normAddr || typeof window === 'undefined') return;
+  try {
+    const set = getReadIds(normAddr);
+    set.add(id);
+    localStorage.setItem(`ans_read_notifs_${normAddr}`, JSON.stringify(Array.from(set)));
+  } catch {}
+}
+
+function persistAllReadIds(normAddr: string, ids: string[]): void {
+  if (!normAddr || typeof window === 'undefined') return;
+  try {
+    const set = getReadIds(normAddr);
+    for (const id of ids) set.add(id);
+    localStorage.setItem(`ans_read_notifs_${normAddr}`, JSON.stringify(Array.from(set)));
+  } catch {}
+}
+
+function getStoredSessionNotifs(normAddr: string): ANSNotification[] {
+  if (!normAddr || typeof window === 'undefined') return [];
+  try {
+    const raw = sessionStorage.getItem(`ans_session_notifs_${normAddr}`);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveStoredSessionNotifs(normAddr: string, notifs: ANSNotification[]): void {
+  if (!normAddr || typeof window === 'undefined') return;
+  try {
+    sessionStorage.setItem(`ans_session_notifs_${normAddr}`, JSON.stringify(notifs));
+  } catch {}
+}
+
+// In-memory notification cache
 const sessionNotificationCache = new Map<string, { notifications: ANSNotification[]; timestamp: number }>();
+
+// ─── On-Chain Notifications Sync ──────────────────────────────────────────────
+
+const TOPIC_NAME_SOLD = '0xe3202271e290250caf3bcfb96c2e7e8e5f63158e26901feb4c260069737892ef';
+const TOPIC_NAME_GIFTED = '0xf936ba22d566eab894630104cae90a56f965c7cc0f64f7a6b3e1090793462e58';
+const TOPIC_NAME_TRANSFERRED = '0x21e177c2bf9adbd548d25cc65d54b697122f907257d8318bddc22375fe666de8';
+const TOPIC_TIP_SENT = '0x807311cccf0140391fe0fe34432f92ebcf55949a591c315de5f92b6d11577cbc';
+
+function topicToAddress(topic: string | null | undefined): string {
+  if (!topic || topic.length < 42) return '';
+  return ('0x' + topic.slice(26)).toLowerCase();
+}
+
+function formatShortAddr(addr: string): string {
+  if (!addr) return '';
+  if (addr.length <= 10) return addr;
+  return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+}
+
+export async function fetchOnChainNotifications(walletAddress: string): Promise<ANSNotification[]> {
+  if (!walletAddress) return [];
+  const normUser = walletAddress.toLowerCase();
+  const notifs: ANSNotification[] = [];
+
+  try {
+    const res = await fetch(`https://explorer.testnet.arc.io/api/v2/addresses/${ANS_ADDRESS}/logs`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    const items = Array.isArray(data?.items) ? data.items : [];
+
+    // Helper: format address with reverse-resolved .arc name if known
+    const formatAddrWithArc = (addr: string): string => {
+      const clean = addr.toLowerCase();
+      const rev = getCachedReverseName(clean);
+      if (rev) return rev;
+      return formatShortAddr(clean);
+    };
+
+    // Pre-pass: Collect all transactions that emitted a NameSold event to suppress duplicate transfers
+    const soldTxHashes = new Set<string>();
+    for (const item of items) {
+      const topics: (string | null)[] = item.topics || [];
+      if (topics[0]?.toLowerCase() === TOPIC_NAME_SOLD) {
+        const txHash = item.transaction_hash || item.tx_hash || '';
+        if (txHash) soldTxHashes.add(txHash.toLowerCase());
+      }
+    }
+
+    for (const item of items) {
+      const topics: (string | null)[] = item.topics || [];
+      const topic0 = topics[0]?.toLowerCase();
+      if (!topic0) continue;
+
+      const txHash: string = item.transaction_hash || item.tx_hash || '';
+      const timestamp: string = item.block_timestamp || new Date().toISOString();
+      const logIndex: number = item.index ?? 0;
+      const rawData = item.data;
+
+      // 1. NameSold(string name, address indexed seller, address indexed buyer, uint256 price)
+      if (topic0 === TOPIC_NAME_SOLD && topics.length >= 3) {
+        const seller = topicToAddress(topics[1]);
+        const buyer = topicToAddress(topics[2]);
+
+        if (seller === normUser || buyer === normUser) {
+          let name = 'unknown';
+          let priceWei = 0n;
+          try {
+            if (rawData && rawData !== '0x') {
+              const decoded = decodeAbiParameters([{ type: 'string' }, { type: 'uint256' }], rawData);
+              name = cleanName(String(decoded[0] || ''));
+              priceWei = BigInt(decoded[1] || 0n);
+            }
+          } catch (e) {
+            console.warn('[notifications] Failed to decode NameSold data:', e);
+          }
+
+          const priceUsdc = (Number(priceWei) / 1e6).toLocaleString(undefined, {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 6,
+          });
+
+          const sellerLabel = formatAddrWithArc(seller);
+          const buyerLabel = formatAddrWithArc(buyer);
+          const dateStr = new Date(timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+
+          if (seller === normUser) {
+            notifs.push({
+              id: `onchain_sold_${txHash}_${logIndex}`,
+              recipient_address: normUser,
+              kind: 'name_sold',
+              title: `Identity Sold: ${name}.arc`,
+              body: `Your name ${name}.arc was purchased by ${buyerLabel} for ${priceUsdc} USDC on ${dateStr}.`,
+              link: `userprofile:${buyer}`,
+              tx_hash: txHash,
+              is_read: false,
+              created_at: timestamp,
+            });
+          } else if (buyer === normUser) {
+            notifs.push({
+              id: `onchain_bought_${txHash}_${logIndex}`,
+              recipient_address: normUser,
+              kind: 'name_bought',
+              title: `Identity Acquired: ${name}.arc`,
+              body: `You successfully purchased ${name}.arc from ${sellerLabel} for ${priceUsdc} USDC.`,
+              link: `profile:${name}`,
+              tx_hash: txHash,
+              is_read: false,
+              created_at: timestamp,
+            });
+          }
+        }
+      }
+
+      // 2. NameGifted(string name, address indexed gifter, address indexed recipient, uint64 expiry)
+      else if (topic0 === TOPIC_NAME_GIFTED && topics.length >= 3) {
+        const gifter = topicToAddress(topics[1]);
+        const recipient = topicToAddress(topics[2]);
+
+        if (recipient === normUser || gifter === normUser) {
+          let name = 'unknown';
+          let expirySec = 0;
+          try {
+            if (rawData && rawData !== '0x') {
+              const decoded = decodeAbiParameters([{ type: 'string' }, { type: 'uint64' }], rawData);
+              name = cleanName(String(decoded[0] || ''));
+              expirySec = Number(decoded[1] || 0n);
+            }
+          } catch (e) {
+            console.warn('[notifications] Failed to decode NameGifted data:', e);
+          }
+
+          const gifterLabel = formatAddrWithArc(gifter);
+          const recipientLabel = formatAddrWithArc(recipient);
+          const expiryDateStr = expirySec > 0 ? new Date(expirySec * 1000).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : '';
+          const monthsDuration = expirySec > 0 ? Math.max(1, Math.round((expirySec - (Date.now() / 1000)) / (30 * 24 * 3600))) : 0;
+          const durationLabel = monthsDuration > 0 ? `${monthsDuration} Months` : '';
+          const detailSuffix = [durationLabel, expiryDateStr ? `expires ${expiryDateStr}` : ''].filter(Boolean).join(', ');
+
+          if (recipient === normUser) {
+            notifs.push({
+              id: `onchain_gift_rec_${txHash}_${logIndex}`,
+              recipient_address: normUser,
+              kind: 'name_gift_received',
+              title: 'Name Gift Received',
+              body: `${gifterLabel} gifted you ${name}.arc${detailSuffix ? ` (${detailSuffix})` : ''}!`,
+              link: `profile:${name}`,
+              tx_hash: txHash,
+              is_read: false,
+              created_at: timestamp,
+            });
+          } else if (gifter === normUser) {
+            notifs.push({
+              id: `onchain_gift_sent_${txHash}_${logIndex}`,
+              recipient_address: normUser,
+              kind: 'name_gift_sent',
+              title: 'Name Gifted',
+              body: `You successfully gifted ${name}.arc${detailSuffix ? ` (${detailSuffix})` : ''} to ${recipientLabel}.`,
+              link: `profile:${name}`,
+              tx_hash: txHash,
+              is_read: false,
+              created_at: timestamp,
+            });
+          }
+        }
+      }
+
+      // 3. TipSent(string toName, address indexed from, address indexed to, uint256 amount, string note)
+      else if (topic0 === TOPIC_TIP_SENT && topics.length >= 3) {
+        const from = topicToAddress(topics[1]);
+        const to = topicToAddress(topics[2]);
+
+        if (to === normUser || from === normUser) {
+          let toName = '';
+          let amountWei = 0n;
+          let note = '';
+          try {
+            if (rawData && rawData !== '0x') {
+              const decoded = decodeAbiParameters(
+                [{ type: 'string' }, { type: 'uint256' }, { type: 'string' }],
+                rawData
+              );
+              toName = cleanName(String(decoded[0] || ''));
+              amountWei = BigInt(decoded[1] || 0n);
+              note = String(decoded[2] || '').trim();
+            }
+          } catch (e) {
+            console.warn('[notifications] Failed to decode TipSent data:', e);
+          }
+
+          const amountUsdc = (Number(amountWei) / 1e6).toLocaleString(undefined, {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 6,
+          });
+
+          const fromLabel = formatAddrWithArc(from);
+          const toLabel = toName ? `${toName}.arc` : formatAddrWithArc(to);
+
+          if (to === normUser) {
+            notifs.push({
+              id: `onchain_tip_rec_${txHash}_${logIndex}`,
+              recipient_address: normUser,
+              kind: 'tip_received',
+              title: 'Tip Received',
+              body: `You received a ${amountUsdc} USDC tip from ${fromLabel}${
+                note ? ` ("${note}")` : ''
+              }.`,
+              link: `userprofile:${from}`,
+              tx_hash: txHash,
+              is_read: false,
+              created_at: timestamp,
+            });
+          } else if (from === normUser) {
+            notifs.push({
+              id: `onchain_tip_sent_${txHash}_${logIndex}`,
+              recipient_address: normUser,
+              kind: 'tip_sent',
+              title: 'Tip Sent',
+              body: `You sent a ${amountUsdc} USDC tip to ${toLabel}.`,
+              link: toName ? `profile:${toName}` : `userprofile:${to}`,
+              tx_hash: txHash,
+              is_read: false,
+              created_at: timestamp,
+            });
+          }
+        }
+      }
+
+      // 4. NameTransferred(string name, address indexed from, address indexed to)
+      else if (topic0 === TOPIC_NAME_TRANSFERRED && topics.length >= 3) {
+        // If this transfer was part of a marketplace purchase, suppress the duplicate gift notification!
+        if (soldTxHashes.has(txHash.toLowerCase())) {
+          continue;
+        }
+
+        const from = topicToAddress(topics[1]);
+        const to = topicToAddress(topics[2]);
+
+        if (to === normUser || from === normUser) {
+          let name = 'unknown';
+          try {
+            if (rawData && rawData !== '0x') {
+              const decoded = decodeAbiParameters([{ type: 'string' }], rawData);
+              name = cleanName(String(decoded[0] || ''));
+            }
+          } catch (e) {
+            console.warn('[notifications] Failed to decode NameTransferred data:', e);
+          }
+
+          const fromLabel = formatAddrWithArc(from);
+          const toLabel = formatAddrWithArc(to);
+
+          if (to === normUser) {
+            notifs.push({
+              id: `onchain_transfer_rec_${txHash}_${logIndex}`,
+              recipient_address: normUser,
+              kind: 'name_gift_received',
+              title: 'Name Transferred to You',
+              body: `${fromLabel} transferred ownership of ${name}.arc to your wallet.`,
+              link: `profile:${name}`,
+              tx_hash: txHash,
+              is_read: false,
+              created_at: timestamp,
+            });
+          } else if (from === normUser) {
+            notifs.push({
+              id: `onchain_transfer_sent_${txHash}_${logIndex}`,
+              recipient_address: normUser,
+              kind: 'name_gift_sent',
+              title: 'Name Transferred',
+              body: `You transferred ownership of ${name}.arc to ${toLabel}.`,
+              link: `profile:${name}`,
+              tx_hash: txHash,
+              is_read: false,
+              created_at: timestamp,
+            });
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[notifications] fetchOnChainNotifications error:', err);
+  }
+
+  return notifs;
+}
 
 export function useNotifications(
   walletAddress: string | null | undefined,
-  signChallenge: SignChallengeCallback | null | undefined
+  _signChallenge?: SignChallengeCallback | null | undefined
 ): UseNotificationsResult {
   const normAddr = walletAddress?.toLowerCase() || '';
 
   const [notifications, setNotifications] = useState<ANSNotification[]>(() => {
-    const client = normAddr ? getClientNotifications(normAddr) : [];
-    const server =
-      normAddr && sessionNotificationCache.has(normAddr)
-        ? sessionNotificationCache.get(normAddr)!.notifications
-        : [];
-    return mergeWithClientNotifications(server, client);
+    if (!normAddr) return [];
+    const client = getClientNotifications(normAddr);
+    let server: ANSNotification[] = [];
+    if (sessionNotificationCache.has(normAddr)) {
+      server = sessionNotificationCache.get(normAddr)!.notifications;
+    } else {
+      server = getStoredSessionNotifs(normAddr);
+      if (server.length > 0) {
+        sessionNotificationCache.set(normAddr, { notifications: server, timestamp: Date.now() });
+      }
+    }
+    const merged = mergeWithClientNotifications(server, client);
+    const readIds = getReadIds(normAddr);
+    return merged.map(n => readIds.has(n.id) ? { ...n, is_read: true } : n);
   });
   const [isLoading, setIsLoading] = useState(false);
   const [isAccountUndeployed, setIsAccountUndeployed] = useState(false);
 
-  // Sync state if wallet address switches
+  const refresh = useCallback(
+    async (_force = false) => {
+      if (!normAddr) {
+        setNotifications([]);
+        setIsAccountUndeployed(false);
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        // Fetch confirmed on-chain event logs (NameSold, NameGifted, TipSent, NameTransferred)
+        const onChainNotifs = await fetchOnChainNotifications(normAddr);
+
+        // Load client-side transaction notifications
+        const client = getClientNotifications(normAddr);
+
+        // Load cached server or session notifications
+        const cached = sessionNotificationCache.has(normAddr)
+          ? sessionNotificationCache.get(normAddr)!.notifications
+          : getStoredSessionNotifs(normAddr);
+
+        const merged = mergeWithClientNotifications(
+          mergeWithClientNotifications(cached, onChainNotifs),
+          client
+        );
+
+        sessionNotificationCache.set(normAddr, {
+          notifications: merged,
+          timestamp: Date.now(),
+        });
+        saveStoredSessionNotifs(normAddr, merged);
+
+        const readIds = getReadIds(normAddr);
+        setNotifications(merged.map(n => readIds.has(n.id) ? { ...n, is_read: true } : n));
+      } catch (err) {
+        console.error('[notifications] refresh error:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [normAddr]
+  );
+
+  // Sync state if wallet address switches & auto-refresh on mount
   useEffect(() => {
     if (normAddr) {
-      const client = getClientNotifications(normAddr);
-      const server = sessionNotificationCache.has(normAddr)
-        ? sessionNotificationCache.get(normAddr)!.notifications
-        : [];
-      setNotifications(mergeWithClientNotifications(server, client));
+      refresh(false);
+      // Background poll every 20 seconds for new events (no passkey needed)
+      const timer = setInterval(() => {
+        refresh(false);
+      }, 20000);
+      return () => clearInterval(timer);
     } else {
       setNotifications([]);
     }
-  }, [normAddr]);
+  }, [normAddr, refresh]);
 
   // Listen for live client-side transaction updates
   useEffect(() => {
@@ -399,8 +799,10 @@ export function useNotifications(
           const client = getClientNotifications(normAddr);
           const server = sessionNotificationCache.has(normAddr)
             ? sessionNotificationCache.get(normAddr)!.notifications
-            : prev.filter((n) => !n.id.startsWith('client_'));
-          return mergeWithClientNotifications(server, client);
+            : getStoredSessionNotifs(normAddr);
+          const merged = mergeWithClientNotifications(server, client);
+          const readIds = getReadIds(normAddr);
+          return merged.map(n => readIds.has(n.id) ? { ...n, is_read: true } : n);
         });
       }
     };
@@ -408,48 +810,8 @@ export function useNotifications(
     return () => window.removeEventListener('ans_notifications_updated', handleUpdate);
   }, [normAddr]);
 
-  const hasCachedSession = Boolean(normAddr && sessionNotificationCache.has(normAddr));
-
-  const refresh = useCallback(
-    async (force = false) => {
-      if (!walletAddress || !signChallenge || !isSupabaseConfigured) {
-        const client = normAddr ? getClientNotifications(normAddr) : [];
-        setNotifications(client);
-        setIsAccountUndeployed(false);
-        return;
-      }
-
-      const norm = walletAddress.toLowerCase();
-      // If we already have a cached session and force wasn't requested, use cached items
-      if (!force && sessionNotificationCache.has(norm)) {
-        const client = getClientNotifications(norm);
-        setNotifications(mergeWithClientNotifications(sessionNotificationCache.get(norm)!.notifications, client));
-        return;
-      }
-
-      setIsLoading(true);
-      try {
-        const res = await fetchNotificationsDetailed(walletAddress, signChallenge);
-        setIsAccountUndeployed(res.isAccountUndeployed);
-        if (res.notifications) {
-          sessionNotificationCache.set(norm, {
-            notifications: res.notifications,
-            timestamp: Date.now(),
-          });
-          const client = getClientNotifications(norm);
-          setNotifications(mergeWithClientNotifications(res.notifications, client));
-        }
-        if (!res.isAccountUndeployed && !res.userCancelled && res.error) {
-          toast.error('Could not load notifications');
-        }
-      } catch (err) {
-        console.error('[notifications] refresh error:', err);
-        toast.error('Could not load notifications');
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [walletAddress, signChallenge, normAddr]
+  const hasCachedSession = Boolean(
+    normAddr && (sessionNotificationCache.has(normAddr) || getStoredSessionNotifs(normAddr).length > 0)
   );
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
@@ -461,8 +823,9 @@ export function useNotifications(
       const updated = notifications.map((n) => (n.id === id ? { ...n, is_read: true } : n));
       setNotifications(updated);
 
-      if (id.startsWith('client_')) {
-        if (normAddr) {
+      if (normAddr) {
+        persistReadId(normAddr, id);
+        if (id.startsWith('client_')) {
           const key = `ans_client_notifs_${normAddr}`;
           try {
             const current = getClientNotifications(normAddr);
@@ -470,28 +833,20 @@ export function useNotifications(
             localStorage.setItem(key, JSON.stringify(saved));
           } catch {}
         }
-        return;
-      }
 
-      if (normAddr) {
         const cached = sessionNotificationCache.get(normAddr);
         if (cached) {
+          const updatedCache = cached.notifications.map((n) => (n.id === id ? { ...n, is_read: true } : n));
           sessionNotificationCache.set(normAddr, {
-            notifications: cached.notifications.map((n) => (n.id === id ? { ...n, is_read: true } : n)),
+            notifications: updatedCache,
             timestamp: Date.now(),
           });
+          saveStoredSessionNotifs(normAddr, updatedCache);
         }
       }
-
-      if (signChallenge && !isAccountUndeployed) {
-        try {
-          await markRead(id, walletAddress, signChallenge);
-        } catch {
-          // Keep local read state even if background sync fails
-        }
-      }
+      // Never prompt for passkey signature just to mark a notification read
     },
-    [walletAddress, signChallenge, isAccountUndeployed, notifications, normAddr]
+    [walletAddress, notifications, normAddr]
   );
 
   const markAllAsRead = useCallback(async () => {
@@ -500,6 +855,7 @@ export function useNotifications(
     setNotifications(updated);
 
     if (normAddr) {
+      persistAllReadIds(normAddr, notifications.map(n => n.id));
       const key = `ans_client_notifs_${normAddr}`;
       try {
         const current = getClientNotifications(normAddr);
@@ -509,21 +865,16 @@ export function useNotifications(
 
       const cached = sessionNotificationCache.get(normAddr);
       if (cached) {
+        const updatedCache = cached.notifications.map((n) => ({ ...n, is_read: true }));
         sessionNotificationCache.set(normAddr, {
-          notifications: cached.notifications.map((n) => ({ ...n, is_read: true })),
+          notifications: updatedCache,
           timestamp: Date.now(),
         });
+        saveStoredSessionNotifs(normAddr, updatedCache);
       }
     }
-
-    if (signChallenge && !isAccountUndeployed) {
-      try {
-        await markAllRead(walletAddress, signChallenge);
-      } catch {
-        // Keep local read state even if background sync fails
-      }
-    }
-  }, [walletAddress, signChallenge, isAccountUndeployed, notifications, normAddr]);
+    // Never prompt for passkey signature just to mark all notifications read
+  }, [walletAddress, notifications, normAddr]);
 
   return {
     notifications,

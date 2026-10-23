@@ -86,6 +86,11 @@ export const ShareQRModal: React.FC<ShareQRModalProps> = ({
     }
   };
 
+  const handleShareOnX = () => {
+    const tweetText = encodeURIComponent(`Check out ${name ? `${name} on @ArcNetwork with ANS!` : 'this Web3 identity on Arc Name Service!'}`);
+    window.open(`https://twitter.com/intent/tweet?text=${tweetText}&url=${encodeURIComponent(shareUrl)}`, '_blank', 'noopener,noreferrer');
+  };
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200"
@@ -103,7 +108,7 @@ export const ShareQRModal: React.FC<ShareQRModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-gray-400 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+            className="p-1 rounded-lg text-gray-400 hover:text-gray-900 hover:bg-gray-100 transition-colors cursor-pointer"
           >
             <X size={18} />
           </button>
@@ -143,16 +148,24 @@ export const ShareQRModal: React.FC<ShareQRModalProps> = ({
         <div className="space-y-2">
           <button
             onClick={handleCopyLink}
-            className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-[#141413] text-white hover:bg-[#282826] text-xs font-sans font-semibold transition-colors shadow-2xs"
+            className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-[#141413] text-white hover:bg-[#282826] text-xs font-sans font-semibold transition-colors shadow-2xs cursor-pointer active:scale-98"
           >
             {copiedLink ? <Check size={14} className="text-[#137A43]" /> : <Share2 size={14} />}
             <span>{copiedLink ? 'Link Copied!' : 'Copy Shareable Profile Link'}</span>
           </button>
 
+          <button
+            onClick={handleShareOnX}
+            className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-white border border-[#E5E5E2] hover:bg-[#FBFBFA] text-gray-800 text-xs font-sans font-semibold transition-colors cursor-pointer active:scale-98"
+          >
+            <Share2 size={14} className="text-gray-500" />
+            <span>Share on X (Twitter)</span>
+          </button>
+
           {address && (
             <button
               onClick={handleCopyAddress}
-              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-white border border-[#E5E5E2] hover:bg-[#FBFBFA] text-gray-700 text-xs font-sans font-semibold transition-colors"
+              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-white border border-[#E5E5E2] hover:bg-[#FBFBFA] text-gray-700 text-xs font-sans font-semibold transition-colors cursor-pointer active:scale-98"
             >
               {copiedAddress ? <Check size={14} className="text-[#137A43]" /> : <Copy size={14} />}
               <span>{copiedAddress ? 'Address Copied!' : 'Copy Arc Address'}</span>
@@ -162,7 +175,7 @@ export const ShareQRModal: React.FC<ShareQRModalProps> = ({
           {typeof navigator !== 'undefined' && typeof (navigator as any).share === 'function' && (
             <button
               onClick={handleNativeShare}
-              className="w-full flex items-center justify-center gap-1.5 py-2 text-xs font-sans font-medium text-gray-500 hover:text-gray-900 transition-colors"
+              className="w-full flex items-center justify-center gap-1.5 py-1.5 text-xs font-sans font-medium text-gray-500 hover:text-gray-900 transition-colors cursor-pointer"
             >
               <ExternalLink size={13} />
               <span>More sharing options</span>

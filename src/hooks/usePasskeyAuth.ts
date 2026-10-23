@@ -17,6 +17,31 @@ export type AuthState = {
 
 const STORAGE_KEY = 'ans_passkey_credential'
 
+function isWebAuthnCancellation(err: any): boolean {
+  if (!err) return false
+  const rawParts: string[] = []
+  if (typeof err === 'string') rawParts.push(err)
+  else if (err && typeof err === 'object') {
+    if (err.name) rawParts.push(String(err.name))
+    if (err.message) rawParts.push(String(err.message))
+    if (err.details) rawParts.push(String(err.details))
+    if (err.cause?.message) rawParts.push(String(err.cause.message))
+    try { rawParts.push(JSON.stringify(err)) } catch {}
+  }
+  const msg = rawParts.join(' ').toLowerCase()
+  return (
+    err.name === 'NotAllowedError' ||
+    msg.includes('notallowederror') ||
+    msg.includes('timed out or was not allowed') ||
+    msg.includes('failed to request credential') ||
+    msg.includes('webauthn') ||
+    msg.includes('w3.org') ||
+    msg.includes('privacy-considerations') ||
+    msg.includes('cancel') ||
+    msg.includes('abort')
+  )
+}
+
 export function usePasskeyAuth(): AuthState {
   const [credential, setCredential] = useState<P256Credential | null>(() => {
     try {
@@ -53,14 +78,14 @@ export function usePasskeyAuth(): AuthState {
         cred = await loginPasskey()
       } catch (loginErr: any) {
         // Stop if the user cancelled the native WebAuthn dialog
-        if (loginErr?.name === 'NotAllowedError' || loginErr?.message?.toLowerCase().includes('cancel') || loginErr?.message?.toLowerCase().includes('aborted')) {
+        if (isWebAuthnCancellation(loginErr)) {
           throw new Error('Sign in was cancelled.')
         }
         console.warn('Passkey login did not complete, attempting registration...', loginErr)
         try {
           cred = await registerPasskey('ans-user-' + Date.now())
         } catch (regErr: any) {
-          if (regErr?.name === 'NotAllowedError' || regErr?.message?.toLowerCase().includes('cancel') || regErr?.message?.toLowerCase().includes('aborted')) {
+          if (isWebAuthnCancellation(regErr)) {
             throw new Error('Registration was cancelled.')
           }
           throw regErr
@@ -73,7 +98,9 @@ export function usePasskeyAuth(): AuthState {
       toast.success('Connected with Passkey!')
     } catch (e: unknown) {
       let msg = e instanceof Error ? e.message : 'Sign in failed'
-      if (e instanceof DOMException && e.name === 'SecurityError') {
+      if (isWebAuthnCancellation(e)) {
+        msg = 'Sign in was cancelled.'
+      } else if (e instanceof DOMException && e.name === 'SecurityError') {
         msg = 'WebAuthn domain mismatch: this key is registered for il3eocims6w6igedeo90s.preview.studio.arc.io'
       }
       setError(msg)
@@ -96,7 +123,7 @@ export function usePasskeyAuth(): AuthState {
       toast.success('New wallet created with Passkey!')
     } catch (e: unknown) {
       let msg = e instanceof Error ? e.message : 'Sign up failed'
-      if (e instanceof DOMException && e.name === 'NotAllowedError') {
+      if (isWebAuthnCancellation(e)) {
         msg = 'Registration was cancelled.'
       }
       setError(msg)

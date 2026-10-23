@@ -37,14 +37,6 @@ export function getCachedReverseName(address?: string | null): string | null {
     return cached.name;
   }
 
-  // 3. Check known on-chain identities
-  if (isAddressMatch(address, '0x5B16cCCB2A13Fd2c5feC3321f0cFA98bccBBDa7d')) {
-    return 'nimox.arc';
-  }
-  if (isAddressMatch(address, '0x815289D5c67E533d008fd38C51B1159cFa9BDa0c')) {
-    return 'maler.arc';
-  }
-
   return null;
 }
 
