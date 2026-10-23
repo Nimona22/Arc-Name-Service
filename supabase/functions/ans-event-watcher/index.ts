@@ -50,6 +50,9 @@ export const TIP_SENT_EVENT = parseAbiItem(
 export const NAME_GIFTED_EVENT = parseAbiItem(
   'event NameGifted(string name, address indexed gifter, address indexed recipient, uint64 expiry)'
 );
+export const NAME_TRANSFERRED_EVENT = parseAbiItem(
+  'event NameTransferred(string name, address indexed from, address indexed to)'
+);
 export const NAME_LISTED_EVENT = parseAbiItem(
   'event NameListed(string name, address indexed seller, uint256 price)'
 );
@@ -297,6 +300,39 @@ export function buildTipSentNotifications(args: any, txHash: string, logIndex: n
   ];
 }
 
+export function buildNameTransferredNotifications(args: any, txHash: string, logIndex: number) {
+  if (!args || typeof args !== 'object') return [];
+  const { name, from, to } = args;
+  if (!isValidName(name) || !isAddress(from) || !isAddress(to)) return [];
+  if ((from as string).toLowerCase() === (to as string).toLowerCase()) return [];
+
+  const clean = String(name).trim().toLowerCase().replace(/\.arc$/, '');
+  const dedupBase = {
+    tx_hash: txHash,
+    log_index: typeof logIndex === 'number' ? logIndex : Number(logIndex || 0),
+  };
+  return [
+    {
+      ...dedupBase,
+      recipient_address: (from as string).toLowerCase(),
+      kind: 'name_transferred',
+      title: `You transferred ${clean}.arc`,
+      body: `You transferred ${clean}.arc to ${(to as string).slice(0, 6)}...${(to as string).slice(-4)}.`,
+      link: `profile:${clean}.arc`,
+      is_read: false,
+    },
+    {
+      ...dedupBase,
+      recipient_address: (to as string).toLowerCase(),
+      kind: 'name_transfer_received',
+      title: `You received ${clean}.arc`,
+      body: `You received ${clean}.arc from ${(from as string).slice(0, 6)}...${(from as string).slice(-4)}.`,
+      link: `profile:${clean}.arc`,
+      is_read: false,
+    },
+  ];
+}
+
 export function buildNameGiftedNotifications(args: any, txHash: string, logIndex: number) {
   if (!args || typeof args !== 'object') return [];
   const { name, gifter, recipient } = args;
@@ -431,6 +467,7 @@ export async function pollChunk({
   const soldLogs: any[] = [];
   const tipLogs: any[] = [];
   const giftedLogs: any[] = [];
+  const transferredLogs: any[] = [];
   const listedLogs: any[] = [];
   const cancelledLogs: any[] = [];
 
@@ -438,7 +475,7 @@ export async function pollChunk({
     if (ansAddress === tippingAddress) {
       const rawLogs = await rpcClient.getLogs({
         address: ansAddress,
-        events: [NAME_SOLD_EVENT, TIP_SENT_EVENT, NAME_GIFTED_EVENT, NAME_LISTED_EVENT, NAME_LISTING_CANCELLED_EVENT],
+        events: [NAME_SOLD_EVENT, TIP_SENT_EVENT, NAME_GIFTED_EVENT, NAME_TRANSFERRED_EVENT, NAME_LISTED_EVENT, NAME_LISTING_CANCELLED_EVENT],
         fromBlock,
         toBlock,
       });
@@ -447,13 +484,14 @@ export async function pollChunk({
         if (log.address.toLowerCase() !== ansAddress) continue;
         try {
           const decoded = decodeEventLog({
-            abi: [NAME_SOLD_EVENT, TIP_SENT_EVENT, NAME_GIFTED_EVENT, NAME_LISTED_EVENT, NAME_LISTING_CANCELLED_EVENT],
+            abi: [NAME_SOLD_EVENT, TIP_SENT_EVENT, NAME_GIFTED_EVENT, NAME_TRANSFERRED_EVENT, NAME_LISTED_EVENT, NAME_LISTING_CANCELLED_EVENT],
             data: log.data,
             topics: log.topics,
           });
           if (decoded.eventName === 'NameSold') soldLogs.push({ ...log, decoded });
           else if (decoded.eventName === 'TipSent') tipLogs.push({ ...log, decoded });
           else if (decoded.eventName === 'NameGifted') giftedLogs.push({ ...log, decoded });
+          else if (decoded.eventName === 'NameTransferred') transferredLogs.push({ ...log, decoded });
           else if (decoded.eventName === 'NameListed') listedLogs.push({ ...log, decoded });
           else if (decoded.eventName === 'NameListingCancelled') cancelledLogs.push({ ...log, decoded });
         } catch {
@@ -461,7 +499,7 @@ export async function pollChunk({
         }
       }
     } else {
-      const [rawSold, rawTip, rawListed, rawCancelled] = await Promise.all([
+      const [rawSold, rawTip, rawListed, rawCancelled, rawTransferred] = await Promise.all([
         rpcClient.getLogs({
           address: ansAddress,
           events: [NAME_SOLD_EVENT],
@@ -483,6 +521,12 @@ export async function pollChunk({
         rpcClient.getLogs({
           address: ansAddress,
           events: [NAME_LISTING_CANCELLED_EVENT],
+          fromBlock,
+          toBlock,
+        }),
+        rpcClient.getLogs({
+          address: ansAddress,
+          events: [NAME_TRANSFERRED_EVENT],
           fromBlock,
           toBlock,
         }),
@@ -535,6 +579,18 @@ export async function pollChunk({
           if (decoded.eventName === 'NameListingCancelled') cancelledLogs.push({ ...log, decoded });
         } catch {}
       }
+
+      for (const log of rawTransferred) {
+        if (log.address.toLowerCase() !== ansAddress) continue;
+        try {
+          const decoded = decodeEventLog({
+            abi: [NAME_TRANSFERRED_EVENT],
+            data: log.data,
+            topics: log.topics,
+          });
+          if (decoded.eventName === 'NameTransferred') transferredLogs.push({ ...log, decoded });
+        } catch {}
+      }
     }
   } catch (rpcErr: any) {
     // RPC error (range limit or network timeout) -> Fail closed, do NOT advance cursor
@@ -572,6 +628,21 @@ export async function pollChunk({
   for (const item of giftedLogs) {
     if (!item.transactionHash) continue;
     const notifs = buildNameGiftedNotifications(
+      item.decoded.args,
+      item.transactionHash,
+      item.logIndex ?? 0
+    );
+    toInsert.push(...notifs);
+  }
+
+  // Marketplace purchases emit both NameSold and NameTransferred in one tx.
+  // Skip transfer notifications for those transactions to avoid duplicates.
+  const saleTxHashes = new Set(
+    soldLogs.map((item) => String(item.transactionHash || '').toLowerCase())
+  );
+  for (const item of transferredLogs) {
+    if (!item.transactionHash || saleTxHashes.has(String(item.transactionHash).toLowerCase())) continue;
+    const notifs = buildNameTransferredNotifications(
       item.decoded.args,
       item.transactionHash,
       item.logIndex ?? 0
